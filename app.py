@@ -186,4 +186,4 @@ data['target'] = (data['close'].shift(-3) > data['close']).astype(int)
 if prediction == 1:
     st.success(f"🤖 AI PRZEWIDUJE: WZROST (Prawdopodobieństwo: {prob_last:.2%})")
 else:
-    st.error(f"🤖 AI PRZEWIDUJE: SPADEK (Prawdopodobieństwo: {1-prob_las.2%})")
+    st.error(f"🤖 AI PRZEWIDUJE: SPADEK (Prawdopodobieństwo: {1-prob_last:.2%})")
