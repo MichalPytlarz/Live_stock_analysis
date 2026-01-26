@@ -1,0 +1,14 @@
+ticker,name,emoji,sector,include_oil
+PKN.WA,PKN Orlen,🛢️,Energia,True
+PGE.WA,PGE,⚡,Energia,True
+TPE.WA,Tauron Polska,💡,Energia,False
+COG.WA,Cognor,🏭,Przemysł,False
+KGH.WA,KGHM Polska Miedź,⛏️,Surowce,False
+ACP.WA,Asseco Poland,💻,Technologie,False
+PEO.WA,Pekao SA,📊,Finanse,False
+PKO.WA,PKO BP,🏦,Finanse,False
+SPL.WA,Santander Bank,🏛️,Finanse,False
+CDR.WA,CD Projekt,🎮,Technologie,False
+MBK.WA,mBank,💳,Finanse,False
+1AT.WA,Atal,🏢,Nieruchomości,False
+OPL.WA,Orange Polska,📱,Telekomunikacja,False

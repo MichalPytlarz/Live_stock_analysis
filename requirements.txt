@@ -6,3 +6,7 @@ pandas>=2.0.0,<3.0.0
 numpy>=1.24.0
 scikit-learn
 joblib
+googletrans
+textblob
+gnews
+deep-translator

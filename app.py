@@ -1,189 +1,138 @@
 import streamlit as st
-import yfinance as yf
-from stockstats import StockDataFrame
-import plotly.graph_objects as go
-from datetime import datetime
-import pandas as pd
-import joblib
+from components.data_loader import load_data_cached
+from components.model_predictor import ModelPredictor
+from components.metrics_display import display_metrics, display_rsi_signal, display_prediction
+from components.charts import create_candlestick_chart, create_oil_chart
+from config import get_company_info, get_all_sectors, get_companies_by_sector
+from sentimental_analysis import get_reliable_sentiment, get_sentiment_emoji, get_sentiment_text
+from config import COMPANIES
+from textblob import TextBlob
+# Konfiguracja Streamlit
+st.set_page_config(page_title="Stock Analysis Dashboard", layout="wide")
 
-st.set_page_config(page_title="Orlen ML Dashboard", layout="wide")
+# Nagłówek
+st.markdown("# 📈 Analiza rynkow gieldowych")
 
-st.title("📊 Monitorowanie Spółki ORLEN (PKN.WA) na żywo")
+# Sidebar - Wybór sektora
+st.sidebar.header("🎯 Wybór sektora")
+all_sectors = get_all_sectors()
+selected_sector = st.sidebar.selectbox("Sektor:", all_sectors)
 
-# Sidebar - Ustawienia
-st.sidebar.header("Ustawienia")
-ticker = "PKN.WA"
-interval = st.sidebar.selectbox("Interwał", ["1m", "5m", "15m", "1h"], index=2)
+# Pobierz spółki z wybranego sektora
+companies_in_sector = get_companies_by_sector(selected_sector)
 
-@st.cache_data(ttl=60)
-def load_data(interval):
-    # 1. Pobieramy Orlen, Ropę i USD/PLN
-    orlen = yf.download("PKN.WA", period="5d", interval=interval)
-    oil = yf.download("BZ=F", period="5d", interval=interval)['Close']
-    usdpln = yf.download("PLN=X", period="5d", interval=interval)['Close']
+
+def render_dashboard(ticker: str):
+    """Renderuje dashboard dla wybranej spółki"""
+    company = get_company_info(ticker)
+    model_path = company['model_path']
+    include_oil = company.get('include_oil', True)
     
-    # 2. Naprawa MultiIndex (dla yfinance)
-    if isinstance(orlen.columns, pd.MultiIndex):
-        orlen.columns = orlen.columns.get_level_values(0)
+    st.title(f"📊 Monitorowanie {company['name']} ({ticker}) na żywo")
     
-    df = orlen.copy()
-    df.columns = df.columns.str.lower()
-    
-    # 3. Synchronizacja danych
-    df['oil_price'] = oil
-    df['usdpln'] = usdpln
-    df = df.ffill().sort_index()
-    
-    # 4. Feature Engineering (Cechy dla ML)
-    stock = StockDataFrame.retype(df.copy())
-    df['rsi'] = stock['rsi_14']
-    df['ema_20'] = stock['close_20_ema']
-    df['oil_chg'] = df['oil_price'].pct_change()
-    df['usd_chg'] = df['usdpln'].pct_change()
-    
-    # 5. Cel (Target) - wzrost za 3 godziny
-    df['target'] = (df['close'].shift(-3) > df['close']).astype(int)
-    
-    return df.dropna()
+    # Sidebar - Ustawienia
+    st.sidebar.header("Ustawienia")
+    interval = st.sidebar.selectbox(f"Interwał - {company['name']}", ["1m", "5m", "15m", "1h"], index=2, key=f"interval_{ticker}")
 
-data = load_data(interval)
-
-if data.empty:
-    st.error("Błąd: Nie udało się pobrać danych. Sprawdź połączenie z internetem lub czy symbol jest poprawny.")
-    st.stop() # Zatrzymuje działanie Streamlit, by nie szedł dalej do pustego iloc[-1]
-
-if len(data) < 2:
-    st.warning("Pobrano zbyt mało danych, aby obliczyć wskaźniki (RSI/EMA). Spróbuj zwiększyć okres (period).")
-    st.stop()
-
-
-
-try:
-    model = joblib.load('orlen_ai_model.pkl')
+    # Pobieranie danych
+    data = load_data_cached(ticker, period="3d", interval=interval, include_oil=include_oil)
     
-    # Pobieramy dane do predykcji (upewnij się, że kolumny są te same!)
-    features = ['rsi', 'ema_20', 'close', 'oil_chg', 'usd_chg']
-    last_row = data[features].iloc[-1:]
+    # Validacja danych
+    if data.empty:
+        st.error("Błąd: Nie udało się pobrać danych. Sprawdź połączenie z internetem lub czy symbol jest poprawny.")
+        return
     
-    # Sprawdzamy czy nie ma NaN (np. jeśli ropa nie pobrała się poprawnie)
-    if last_row.isnull().values.any():
-        st.warning("⚠️ Oczekiwanie na kompletne dane rynkowe...")
+    if len(data) < 2:
+        st.warning("Pobrano zbyt mało danych, aby obliczyć wskaźniki (RSI/EMA). Spróbuj zwiększyć okres (period).")
+        return
+    
+    # Inicjalizacja modelu
+    predictor = ModelPredictor(model_path)
+    
+    # Jeśli model jest dostępny, generujemy sygnały
+    if predictor.is_model_available():
+        # Filtrowanie AI w głównym obszarze (specyficzne dla każdej załadki)
+        with st.expander("⚙️ Filtrowanie AI", expanded=True):
+            min_confidence = st.slider("Minimalna pewność modelu (%)", 50, 90, 65, key=f"confidence_{ticker}") / 100
+        
+        data = predictor.generate_signals(data, min_confidence=min_confidence)
+        prediction_result = predictor.get_last_prediction(data)
     else:
-        probabilities = model.predict_proba(data[features])
-        
-        # 2. Pobieramy wyniki dla ostatniego wiersza (do metryki pod wykresem)
-        prediction = model.predict(data[features].iloc[-1:])[0]
-        prob_last = probabilities[-1][1] # szansa na wzrost dla ostatniego wpisu
-
-        # 3. Tworzymy sygnały historyczne używając suwaka (min_confidence)
-        # Kupno: szansa na wzrost [:, 1] > suwak
-        st.sidebar.markdown("---")
-        st.sidebar.header("Filtrowanie AI")
-        min_confidence = st.sidebar.slider("Minimalna pewność modelu (%)", 50, 90, 65) / 100
-
-        data['buy_signal'] = (probabilities[:, 1] > min_confidence).astype(int)
-        # Sprzedaż: szansa na spadek [:, 0] > suwak
-        data['sell_signal'] = (probabilities[:, 0] > min_confidence).astype(int)
-
-        # 4. Filtrujemy dane do wyświetlenia na wykresie
-        buy_signals = data[data['buy_signal'] == 1]
-        sell_signals = data[data['sell_signal'] == 1]
-        
-except FileNotFoundError:
-    st.info("💡 Najpierw uruchom skrypt treningowy, aby wygenerować model 'orlen_ai_model.pkl'")
-
-
-# Layout: Statystyki na górze
-col1, col2, col3, col4, col5 = st.columns(5)
-current_price = data['close'].iloc[-1]
-prev_price = data['close'].iloc[-2]
-change = current_price - prev_price
-
-oil_now = data['oil_price'].iloc[-1]
-oil_prev = data['oil_price'].iloc[-2]
-oil_diff = oil_now - oil_prev
-
-usd_now = data['usdpln'].iloc[-1]
-usd_prev = data['usdpln'].iloc[-2]
-usd_diff = usd_now - usd_prev
-
-col1.metric("Cena PKN.WA", f"{current_price:.2f} PLN", f"{change:.2f} PLN")
-col2.metric("RSI (14)", f"{data['rsi'].iloc[-1]:.2f}")
-col3.metric("Ostatnia aktualizacja", datetime.now().strftime("%H:%M:%S"))
-col4.metric("Ropa Brent (USD)", f"{oil_now:.2f}$", f"{oil_diff:.2f}$")
-col5.metric("USD/PLN", f"{usd_now:.4f} zł", f"{usd_diff:.4f} zł")
-
-# Wykres świecowy
-fig = go.Figure(data=[go.Candlestick(x=data.index,
-                open=data['open'], high=data['high'],
-                low=data['low'], close=data['close'], name='Notowania')])
-
-# Dodanie linii EMA
-fig.add_trace(go.Scatter(x=data.index, y=data['ema_20'], name='EMA 20', line=dict(color='orange')))
-
-fig.add_trace(go.Scatter(
-    x=buy_signals.index,
-    y=buy_signals['close'],
-    mode='markers',
-    marker=dict(symbol='triangle-up', size=10, color='#00ff00'),
-    name='AI: Sugerowany Wzrost'
-))
+        st.info(f"💡 Najpierw uruchom skrypt treningowy, aby wygenerować model '{model_path}'")
+        prediction_result = None
+        data['buy_signal'] = 0
+        data['sell_signal'] = 0
+    
+    # Filtrowanie sygnałów
+    buy_signals = data[data['buy_signal'] == 1]
+    sell_signals = data[data['sell_signal'] == 1]
+    
+    # Wyświetlenie metryk
+    display_metrics(data, include_oil=include_oil)
+    
+    # Wykres świecowy
+    fig = create_candlestick_chart(data, ticker, buy_signals, sell_signals)
+    st.plotly_chart(fig, use_container_width=True, key=f"candlestick_{ticker}")
+    
+    # Wykres ropy Brent (tylko dla spółek energetycznych)
+    if include_oil and 'oil_price' in data.columns:
+        fig_oil = create_oil_chart(data)
+        st.plotly_chart(fig_oil, use_container_width=True, key=f"oil_{ticker}")
+    
+    # Sentiment dla aktualnej spółki
+    st.markdown("---")
+    st.subheader("📰 Analiza nastrojów z wiadomości")
+    sentiment_score, headlines = get_reliable_sentiment(ticker)
+    
+    col1, col2, col3 = st.columns([1.5, 2, 2])
+    with col1:
+        st.metric("Wynik", f"{sentiment_score:.2f}")
+    with col2:
+        st.write(f"**Status:** {get_sentiment_emoji(sentiment_score)}")
+    with col3:
+        st.write(f"**Opis:** {get_sentiment_text(sentiment_score)}")
+    
+    if headlines:
+        st.write("**Ostatnie wiadomości:**")
+        for headline in headlines[:3]:
+            st.caption(f"• {headline}")
+    else:
+        st.info("Brak dostępnych wiadomości")
 
 
-fig.add_trace(go.Scatter(
-    x=sell_signals.index,
-    y=sell_signals['close'],
-    mode='markers',
-    marker=dict(symbol='triangle-down', size=10, color='#ff0000'),
-    name='AI: Sugerowany Spadek'
-))
+    # Sygnały RSI
+    rsi_val = data['rsi'].iloc[-1]
+    display_rsi_signal(rsi_val)
+    
+    # Predykcja modelu
+    display_prediction(prediction_result)
+    
 
 
-fig.update_layout(title=f"Wykres techniczny {ticker}", xaxis_rangeslider_visible=False, yaxis_title="Cena w PLN")
-st.plotly_chart(fig, use_container_width=True)
 
-
-st.subheader("🛢️ Notowania Ropy Brent (BZ=F)")
-
-fig_oil = go.Figure()
-
-# Wykres liniowy dla ropy
-fig_oil.add_trace(go.Scatter(
-    x=data.index, 
-    y=data['oil_price'], 
-    mode='lines', 
-    name='Ropa Brent (USD)',
-    line=dict(color='silver', width=2)
-))
-
-fig_oil.update_layout(
-    height=300, 
-    margin=dict(l=20, r=20, t=20, b=20),
-    xaxis_rangeslider_visible=False,
-    yaxis_title="Cena w USD"
-)
-
-st.plotly_chart(fig_oil, use_container_width=True)
-
-# Sekcja ML (Szkielet)
-st.subheader("🤖 Predykcja Modelu ML")
-rsi_val = data['rsi'].iloc[-1]
-
-if rsi_val > 70:
-    st.warning("Sygnał: WYKUPIONO (Możliwy spadek)")
-elif rsi_val < 30:
-    st.success("Sygnał: WYPRZEDANO (Możliwy wzrost)")
+# Zakładki dla spółek w sektorze
+if companies_in_sector:
+    st.subheader(f"📊 Spółki z sektora: {selected_sector}")
+    
+    tab_titles = [f"{get_company_info(ticker)['emoji']} {get_company_info(ticker)['name']}" for ticker in companies_in_sector]
+    
+    # Znaleźć domyślnie Orlen (PKN.WA)
+    default_idx = 0
+    for i, ticker in enumerate(companies_in_sector):
+        if ticker == 'PKN.WA':
+            default_idx = i
+            break
+    
+    selected_company = st.pills("", options=tab_titles, default=tab_titles[default_idx])
+    
+    if selected_company:
+        selected_idx = tab_titles.index(selected_company)
+        selected_ticker = companies_in_sector[selected_idx]
+        render_dashboard(selected_ticker)
 else:
-    st.info("Sygnał: NEUTRALNY")
+    st.warning("Brak spółek w wybranym sektorze")
 
 
 
 
-data['target'] = (data['close'].shift(-3) > data['close']).astype(int)
-
-
-
-if prediction == 1:
-    st.success(f"🤖 AI PRZEWIDUJE: WZROST (Prawdopodobieństwo: {prob_last:.2%})")
-else:
-    st.error(f"🤖 AI PRZEWIDUJE: SPADEK (Prawdopodobieństwo: {1-prob_last:.2%})")
+### TODO: DODAC HEATMAPE SEKTOROW.
