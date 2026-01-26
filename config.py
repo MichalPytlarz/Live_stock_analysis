@@ -5,16 +5,16 @@ from functools import lru_cache
 
 # Mapowanie sektorów (Yahoo Finance Sector -> Polska nazwa)
 SECTOR_MAPPING = {
-    'Energy': 'Energia',
-    'Industrials': 'Przemysł',
-    'Financials': 'Finanse',
-    'Technology': 'Technologie',
-    'Healthcare': 'Farmacja',
-    'Consumer Defensive': 'FMCG',
-    'Real Estate': 'Nieruchomości',
-    'Basic Materials': 'Surowce',
-    'Communication Services': 'Telekomunikacja',
-    'Unknown': 'Inne'
+    'Energia': 'Energia',
+    'Przemysł': 'Przemysł',
+    'Finanse': 'Finanse',
+    'Technologie': 'Technologie',
+    'Farmacja': 'Farmacja',
+    'FMCG': 'FMCG',
+    'Nieruchomości': 'Nieruchomości',
+    'Surowce': 'Surowce',
+    'Telekomunikacja': 'Telekomunikacja',
+    'Inne': 'Inne'
 }
 
 

@@ -3,12 +3,25 @@ PKN.WA,PKN Orlen,🛢️,Energia,True
 PGE.WA,PGE,⚡,Energia,True
 TPE.WA,Tauron Polska,💡,Energia,False
 COG.WA,Cognor,🏭,Przemysł,False
+BDX.WA,Budimex,🏗️,Przemysł,False
+ZEP.WA,ZEPAK,🏭,Energia,True
 KGH.WA,KGHM Polska Miedź,⛏️,Surowce,False
+JSW.WA,JSW,🔥,Surowce,False
 ACP.WA,Asseco Poland,💻,Technologie,False
+CDR.WA,CD Projekt,🎮,Technologie,False
+CBF.WA,Cyber_Folks,🌐,Technologie,False
 PEO.WA,Pekao SA,📊,Finanse,False
 PKO.WA,PKO BP,🏦,Finanse,False
 SPL.WA,Santander Bank,🏛️,Finanse,False
-CDR.WA,CD Projekt,🎮,Technologie,False
 MBK.WA,mBank,💳,Finanse,False
 1AT.WA,Atal,🏢,Nieruchomości,False
+DOM.WA,Dom Development,🏠,Nieruchomości,False
 OPL.WA,Orange Polska,📱,Telekomunikacja,False
+CPS.WA,Cyfrowy Polsat,📡,Telekomunikacja,False
+LPP.WA,LPP,👕,Handel,False
+ALE.WA,Allegro,🛒,Handel,False
+DNP.WA,Dino Polska,🥩,Handel,False
+SNT.WA,Synektik,🏥,Medycyna,False
+NEU.WA,Neuca,💊,Medycyna,False
+INPST.AS,InPost,📦,Handel,False
+BTC-USD,Bitcoin,🪙,Inne,False

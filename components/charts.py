@@ -1,5 +1,7 @@
 import plotly.graph_objects as go
+import plotly.express as px
 import pandas as pd
+import numpy as np
 
 
 def create_candlestick_chart(
@@ -92,6 +94,81 @@ def create_oil_chart(data: pd.DataFrame) -> go.Figure:
         margin=dict(l=20, r=20, t=20, b=20),
         xaxis_rangeslider_visible=False,
         yaxis_title="Cena w USD"
+    )
+    
+    return fig
+
+
+def create_sector_heatmap(companies_data: dict, sector_prices: dict) -> go.Figure:
+    """
+    Tworzy heatmapę zmian procentowych spółek w sektorze
+    
+    Args:
+        companies_data: Słownik danych spółek z config
+        sector_prices: Słownik z danymi cenowymi {ticker: {current_price, prev_price}}
+    
+    Returns:
+        Figura Plotly heatmapy
+    """
+    if not sector_prices:
+        return None
+    
+    # Przygotowanie danych dla heatmapy
+    tickers = []
+    names = []
+    changes = []
+    colors = []
+    
+    for ticker, price_data in sector_prices.items():
+        if ticker in companies_data:
+            company = companies_data[ticker]
+            current = price_data.get('current_price', 0)
+            prev = price_data.get('prev_price', 0)
+            
+            if prev > 0:
+                change = ((current - prev) / prev) * 100
+            else:
+                change = 0
+            
+            tickers.append(ticker)
+            names.append(company['name'])
+            changes.append(change)
+            colors.append('#00ff00' if change >= 0 else '#ff0000')
+    
+    if not tickers:
+        return None
+    
+    # Tworzenie heatmapy
+    fig = go.Figure()
+    
+    fig.add_trace(go.Bar(
+        x=tickers,
+        y=changes,
+        marker=dict(color=colors),
+        text=[f"{change:+.2f}%" for change in changes],
+        textposition='auto',
+        name='Zmiana (%)',
+        hovertemplate='<b>%{customdata}</b><br>Zmiana: %{y:.2f}%<extra></extra>',
+        customdata=names
+    ))
+    
+    fig.update_layout(
+        title="📊 Heatmapa zmian procentowych sektora",
+        xaxis_title="Spółka",
+        yaxis_title="Zmiana procentowa (%)",
+        height=500,
+        hovermode='x unified',
+        showlegend=False,
+        annotations=[
+            dict(
+                text="📌 Zmiana procentowa względem ceny z poprzedniej sesji",
+                xref="paper", yref="paper",
+                x=0, y=-0.15,
+                showarrow=False,
+                font=dict(size=12, color="gray"),
+                align="left"
+            )
+        ]
     )
     
     return fig

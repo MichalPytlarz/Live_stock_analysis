@@ -10,3 +10,5 @@ googletrans
 textblob
 gnews
 deep-translator
+transformers
+torch
