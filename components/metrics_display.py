@@ -45,23 +45,6 @@ def display_metrics(data: pd.DataFrame, include_oil: bool = True):
         col3.metric("Ostatnia aktualizacja", datetime.now().strftime("%H:%M:%S"))
 
 
-def display_rsi_signal(rsi_value: float):
-    """
-    Wyświetla sygnał oparty na RSI
-    
-    Args:
-        rsi_value: Wartość RSI
-    """
-    st.subheader("🤖 Predykcja Modelu ML")
-    
-    if rsi_value > 70:
-        st.warning("Sygnał: WYKUPIONO (Możliwy spadek)")
-    elif rsi_value < 30:
-        st.success("Sygnał: WYPRZEDANO (Możliwy wzrost)")
-    else:
-        st.info("Sygnał: NEUTRALNY")
-
-
 def display_prediction(prediction_dict: dict):
     """
     Wyświetla wynik predykcji modelu ML
@@ -69,6 +52,8 @@ def display_prediction(prediction_dict: dict):
     Args:
         prediction_dict: Słownik z wynikami predykcji
     """
+
+    st.subheader("🤖 Predykcja Modelu ML na podstawie ceny")
     if prediction_dict is None:
         st.warning("Model niedostępny")
         return

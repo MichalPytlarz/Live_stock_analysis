@@ -1,8 +1,8 @@
 import streamlit as st
 from components.data_loader import load_data_cached
 from components.model_predictor import ModelPredictor
-from components.metrics_display import display_metrics, display_rsi_signal, display_prediction
-from components.charts import create_candlestick_chart, create_oil_chart, create_sector_heatmap
+from components.metrics_display import display_metrics, display_prediction
+from components.charts import create_candlestick_chart, create_oil_chart, create_sector_heatmap, create_combined_chart
 from config import get_company_info, get_all_sectors, get_companies_by_sector, COMPANIES
 from sentimental_analysis import get_reliable_sentiment, get_sentiment_emoji, get_sentiment_text
 from textblob import TextBlob
@@ -44,6 +44,7 @@ def display_sentiment_section(ticker):
     else:
         st.info("Oczekiwanie na pierwsze dane z Workera...")
 
+    return df_sentiment
 
 def render_dashboard(ticker: str):
     """Renderuje dashboard dla wybranej spółki"""
@@ -103,7 +104,13 @@ def render_dashboard(ticker: str):
         st.plotly_chart(fig_oil, use_container_width=True, key=f"oil_{ticker}")
 
     ## Analiza NLP nastrojow z uwzglednieniem historii
-    display_sentiment_section(ticker)
+    sentiment = display_sentiment_section(ticker)
+    
+
+    print(sentiment)
+    fig = create_combined_chart(data, sentiment, ticker)
+
+    st.plotly_chart(fig, use_container_width=True)
     
     # Sentiment dla aktualnej spółki (BEZ HISTORII - aktualne dane)
     st.markdown("---")
@@ -125,10 +132,6 @@ def render_dashboard(ticker: str):
     else:
         st.info("Brak dostępnych wiadomości")
 
-
-    # Sygnały RSI
-    rsi_val = data['rsi'].iloc[-1]
-    display_rsi_signal(rsi_val)
     
     # Predykcja modelu
     display_prediction(prediction_result)

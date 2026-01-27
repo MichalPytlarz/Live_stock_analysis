@@ -2,6 +2,8 @@ import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 import numpy as np
+from plotly.subplots import make_subplots
+
 
 
 def create_candlestick_chart(
@@ -58,6 +60,15 @@ def create_candlestick_chart(
             marker=dict(symbol='triangle-down', size=10, color='#ff0000'),
             name='AI: Sugerowany Spadek'
         ))
+
+    
+    if "USD" not in ticker:
+        fig.update_xaxes(
+            rangebreaks=[
+                dict(bounds=["sat", "mon"]), # Usuwa weekendy (od soboty do poniedziałku rano)
+                dict(bounds=[16, 9], pattern="hour"), # Usuwa godziny poza sesją (17:00 - 09:00)
+            ]
+        )
     
     fig.update_layout(
         title=f"Wykres techniczny {ticker}",
@@ -94,6 +105,13 @@ def create_oil_chart(data: pd.DataFrame) -> go.Figure:
         margin=dict(l=20, r=20, t=20, b=20),
         xaxis_rangeslider_visible=False,
         yaxis_title="Cena w USD"
+    )
+
+    fig.update_xaxes(
+        rangebreaks=[
+            dict(bounds=["sat", "mon"]), # Usuwa weekendy (od soboty do poniedziałku rano)
+            dict(bounds=[16, 9], pattern="hour"), # Usuwa godziny poza sesją (16:00 - 09:00)
+        ]
     )
     
     return fig
@@ -171,4 +189,69 @@ def create_sector_heatmap(companies_data: dict, sector_prices: dict) -> go.Figur
         ]
     )
     
+    return fig
+
+
+
+
+
+
+
+
+def create_combined_chart(price_data, sentiment_df, ticker):
+    # Tworzymy figurę z dwiema osiami Y
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+    # 1. Wykres świecowy (Główna oś Y)
+    fig.add_trace(
+        go.Candlestick(
+            x=price_data.index,
+            open=price_data['open'],
+            high=price_data['high'],
+            low=price_data['low'],
+            close=price_data['close'],
+            name="Cena"
+        ),
+        secondary_y=False
+    )
+
+    # 2. Wykres sentymentu (Druga oś Y - prawa)
+    if sentiment_df is not None and not sentiment_df.empty:
+        # Konwersja timestamp na datetime, by pasował do osi X wykresu ceny
+        sentiment_df['timestamp'] = pd.to_datetime(sentiment_df['timestamp'])
+        
+        fig.add_trace(
+            go.Scatter(
+                x=sentiment_df['timestamp'],
+                y=sentiment_df['avg_score'],
+                name="Sentyment NLP (FinBERT)",
+                line=dict(color='royalblue', width=3, shape='spline'),
+                opacity=0.7,
+                mode='lines+markers', # Dodaj punkty (markers), żeby widzieć konkretne odczyty
+                connectgaps=True
+            ),
+            secondary_y=True
+        )
+    # if "USD" not in ticker:
+    #     fig.update_xaxes(
+    #         rangebreaks=[
+    #             dict(bounds=["sat", "mon"]), # Usuwa weekendy (od soboty do poniedziałku rano)
+    #             dict(bounds=[16, 9], pattern="hour"), # Usuwa godziny poza sesją (17:00 - 09:00)
+    #         ]
+    #     )
+
+    ### TODO : MAPPING TO TRADING HOURS NLP Sentimental Analysis
+
+    # Stylizacja
+    fig.update_layout(
+        title=f"Analiza Korelacji Cena vs Sentyment dla {ticker}",
+        xaxis_rangeslider_visible=False,
+        height=600,
+        template="plotly_dark"
+    )
+
+    # Ustawienia osi
+    fig.update_yaxes(title_text="Cena (PLN)", secondary_y=False)
+    fig.update_yaxes(title_text="Sentyment (-1 do 1)", secondary_y=True, range=[-1, 1])
+
     return fig
