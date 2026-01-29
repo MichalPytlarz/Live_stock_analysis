@@ -5,6 +5,11 @@ from bs4 import BeautifulSoup
 from gnews import GNews
 from deep_translator import GoogleTranslator
 import streamlit as st
+import sys
+import os
+
+# Dodaj katalog główny do ścieżki
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import get_company_info
 
 
@@ -79,4 +84,3 @@ def get_sentiment_text(score):
         return "Negatywny"
     else:
         return "Neutralny"
-

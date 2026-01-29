@@ -5,23 +5,42 @@ from functools import lru_cache
 
 # Mapowanie sektorów (Yahoo Finance Sector -> Polska nazwa)
 SECTOR_MAPPING = {
-    'Energia': 'Energia',
-    'Przemysł': 'Przemysł',
-    'Finanse': 'Finanse',
-    'Technologie': 'Technologie',
-    'Farmacja': 'Farmacja',
-    'FMCG': 'FMCG',
-    'Nieruchomości': 'Nieruchomości',
-    'Surowce': 'Surowce',
-    'Telekomunikacja': 'Telekomunikacja',
-    'Inne': 'Inne'
+    'Energy': 'Energia',
+    'Industrials': 'Przemysł',
+    'Financial Services': 'Finanse',
+    'Financials': 'Finanse',
+    'Technology': 'Technologie',
+    'Healthcare': 'Farmacja',
+    'Consumer Defensive': 'FMCG',
+    'Consumer Cyclical': 'FMCG',
+    'Consumer Staples': 'FMCG',
+    'Real Estate': 'Nieruchomości',
+    'Basic Materials': 'Surowce',
+    'Communication Services': 'Telekomunikacja',
+    'Utilities': 'Energia',
+    'Unknown': 'Inne'
 }
+
+METRIC_HELP = {
+    "P/E": "**Cena do Zysku (Price/Earnings):** Mówi, ile złotych inwestor płaci za 1 zł zysku netto spółki. Niski wskaźnik może oznaczać okazję, wysoki – że spółka jest droga. [Więcej na GPWTrader](https://gpwtrader.pl/edukacja/wskazniki)",
+    "P/B": "**Cena do Wartości Księgowej (Price/Book):** Informuje, jak rynek wycenia majątek netto spółki. Wartość poniżej 1.0 może sugerować niedowartościowanie. [Dowiedz się więcej](https://www.biznesradar.pl/wskazniki-wartosci-rynkowej/C-WK)",
+    "DivYield": "**Stopa Dywidendy:** Procentowa wartość dywidendy w stosunku do aktualnej ceny akcji. Im wyższa, tym więcej gotówki trafia do Twojej kieszeni. [Ranking dywidend](https://www.stockwatch.pl/dywidendy/)",
+    "Margin": "**Marża Zysku Netto:** Pokazuje, jaki procent przychodów staje się czystym zyskiem. Wysoka marża oznacza dużą efektywność biznesu."
+}
+
+
+METRICS_CONFIG = [
+    {"label": "P/E Ratio", "key": "pe_ratio", "help_key": "P/E", "format": "{:.2f}"},
+    {"label": "P/B Ratio", "key": "pb_ratio", "help_key": "P/B", "format": "{:.2f}"},
+    {"label": "Dywidenda", "key": "div_yield", "help_key": "DivYield", "format": "{:.2f}%"},
+    {"label": "Marża Zysku", "key": "margin", "help_key": "Margin", "format": "{:.2f}%"}
+]
 
 
 @lru_cache(maxsize=1)
 def load_companies_from_csv() -> dict:
     """Ładuje spółki z CSV"""
-    csv_path = Path(__file__).parent / 'companies.csv'
+    csv_path = Path(__file__).parent / 'data' / 'companies.csv'
     
     if not csv_path.exists():
         print(f"⚠️ Plik {csv_path} nie istnieje. Zwracam pusty słownik.")

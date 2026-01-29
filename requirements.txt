@@ -12,3 +12,4 @@ gnews
 deep-translator
 transformers
 torch
+xgboost

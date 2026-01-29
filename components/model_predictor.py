@@ -7,7 +7,7 @@ from pathlib import Path
 class ModelPredictor:
     """Klasa do zarządzania modelami ML i predykcjami"""
     
-    def __init__(self, model_path: str = 'orlen_ai_model.pkl'):
+    def __init__(self, model_path: str = 'pkn_wa_ai_model.pkl'):
         """
         Inicjalizuje predictor
         
@@ -16,7 +16,11 @@ class ModelPredictor:
         """
         self.model_path = model_path
         self.model = None
-        self.features = ['rsi', 'ema_20', 'close', 'oil_chg', 'usd_chg']
+        self.features = [
+            'rsi', 'ema_20', 'close', 'oil_chg', 'usd_chg',
+            'sentiment_score', 'news_volume',
+            'pe_ratio', 'pb_ratio', 'profit_margin'    
+        ]
         self.load_model()
     
     def load_model(self):
@@ -43,11 +47,14 @@ class ModelPredictor:
         if not self.is_model_available():
             raise ValueError("Model nie został załadowany")
         
+        missing = [f for f in self.features if f not in data.columns]
+        if missing:
+            raise ValueError(f"Brakujące kolumny w danych: {missing}")
+        
         X = data[self.features]
         
-        # Sprawdzenie brakujących wartości
-        if X.isnull().values.any():
-            raise ValueError("Dane zawierają brakujące wartości")
+        X = X.fillna({'sentiment_score': 0, 'news_volume': 0})
+        X = X.ffill().bfill()
         
         predictions = self.model.predict(X)
         probabilities = self.model.predict_proba(X)

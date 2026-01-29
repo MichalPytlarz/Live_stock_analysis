@@ -1,9 +1,14 @@
 import time
 import pandas as pd
+import sys
+import os
 from gnews import GNews
 from transformers import pipeline
-from database_manager import init_db, save_sentiment_results
 from deep_translator import GoogleTranslator
+
+# Dodaj katalog główny do ścieżki
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from database.database_manager import init_db, save_sentiment_results
 
 # 1. Konfiguracja
 init_db()  # Upewnij się, że tabele istnieją
@@ -16,7 +21,8 @@ nlp_pipe = pipeline("sentiment-analysis", model="yiyanghkust/finbert-tone")
 
 def process_all_companies():
     # Wczytaj listę tickerów z Twojego CSV
-    df_companies = pd.read_csv('companies.csv') # upewnij się, że nazwa pliku się zgadza
+    csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'companies.csv')
+    df_companies = pd.read_csv(csv_path)
     
     for _, row in df_companies.iterrows():
         ticker = row['ticker']

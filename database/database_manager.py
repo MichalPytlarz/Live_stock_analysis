@@ -56,7 +56,64 @@ def save_sentiment_results(ticker, avg_score, news_count, headlines_data):
 def get_sentiment_trend(ticker, limit=10):
     """Pobiera historię nastrojów dla wykresu w Streamlit"""
     conn = sqlite3.connect(DB_NAME)
-    query = f"SELECT timestamp, avg_score FROM sentiment_history WHERE ticker = '{ticker}' ORDER BY timestamp DESC LIMIT {limit}"
+    query = f"SELECT ticker, timestamp, avg_score FROM sentiment_history WHERE ticker = '{ticker}' ORDER BY timestamp DESC LIMIT {limit}"
     df = pd.read_sql_query(query, conn)
     conn.close()
     return df
+
+
+def get_worker_status():
+    """Sprawdza status sentiment workera - zwraca ostatnią aktualizację"""
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        query = "SELECT MAX(timestamp) as last_update FROM sentiment_history"
+        result = pd.read_sql_query(query, conn)
+        conn.close()
+        
+        if result.empty or pd.isna(result['last_update'].iloc[0]):
+            return None
+        
+        return pd.to_datetime(result['last_update'].iloc[0])
+    except:
+        return None
+
+
+
+def get_processed_sentiment(sentiment_df):
+    if sentiment_df.empty:
+        return sentiment_df
+
+    df = sentiment_df.copy()
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+
+    def map_to_trading_hours(dt):
+        # 1. Weekendy -> Poniedziałek 09:00
+        if dt.weekday() >= 5:
+            days_to_add = 7 - dt.weekday()
+            return (dt + pd.Timedelta(days=days_to_add)).replace(hour=9, minute=0, second=0)
+        
+        # 2. Noc (po sesji 17:00+) -> Następny dzień 09:00
+        if dt.hour >= 17:
+            # Sprawdź czy to piątek wieczór -> wtedy na poniedziałek
+            if dt.weekday() == 4:
+                return (dt + pd.Timedelta(days=3)).replace(hour=9, minute=0, second=0)
+            return (dt + pd.Timedelta(days=1)).replace(hour=9, minute=0, second=0)
+        
+        # 3. Wcześnie rano (przed 09:00) -> Dziś 09:00
+        if dt.hour < 9:
+            return dt.replace(hour=9, minute=0, second=0)
+        
+        return dt
+
+    # Przesuwamy czasy newsów
+    df['trading_timestamp'] = df['timestamp'].apply(map_to_trading_hours)
+
+    # KLUCZOWY MOMENT: Grupowanie i uśrednianie
+    # Jeśli mamy 10 newsów z nocy, wszystkie dostaną trading_timestamp 09:00 i zostaną uśrednione
+    df_aggregated = df.groupby('trading_timestamp').agg({
+        'avg_score': 'mean',
+        'ticker': 'first' # zachowujemy ticker
+    }).reset_index()
+    df_aggregated.rename(columns={'trading_timestamp': 'timestamp'}, inplace=True)
+
+    return df_aggregated.sort_values('timestamp')

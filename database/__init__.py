@@ -1,0 +1,1 @@
+# Moduł zarządzania bazą danych
