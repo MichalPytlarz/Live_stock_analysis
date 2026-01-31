@@ -4,23 +4,10 @@ Financial analysis platform that integrates **Fundamental Analysis**, **Technica
 
 ---
 
-
-## 🖼️ Preview
-
-### Dashboard Overview
-![Main Dashboard](screenshots/main_dashboard.png)
-*The main terminal view showing real-time price action, sentiment trends, and the floating AI clock.*
-
-### AI Predictions & Fundamentals
-![AI Prediction](screenshots/prediction_and_sentimental_analysis.png)
-*Hybrid XGBoost prediction engine with detailed fundamental tooltips.*
-
 ## 🚀 Core 
-
-This project moves beyond simple price-action forecasting by merging three distinct pillars of quantitative trading:
-1.  **360° Market Context**: Interactive candlestick charts coupled with **Alpha-tracking** (Sector-relative performance normalized to a $y=0$ baseline).
-2.  **Sentiment Intelligence**: Real-time and historical news analysis using the **FinBERT** (Financial BERT) model to quantify market mood.
-3.  **Machine Learning**: **XGBoost** classifier that processes macro and sentiment features to predict price direction (Up/Down) for the next **3 hours**.
+1.  **NLP Scraping**: Scans 50 financial news sources per ticker to extract and summarize key market drivers.
+2.  **Hybrid AI Prediction**: XGBoost classifier predicting 3-hour price direction based on technical, fundamental, and sentiment data.
+3.  **Sector Intelligence**: Dynamic heatmaps for visualizing relative performance across industries.
 
 ---
 
@@ -30,33 +17,41 @@ This project moves beyond simple price-action forecasting by merging three disti
 * **Data Sources**: `yfinance` (Prices & Fundamentals), SQLite (Sentiment History)
 * **Technical Analysis**: `pandas-ta`, `stockstats`
 * **Machine Learning**: **XGBoost** (Gradient Boosted Decision Trees)
-* **NLP**: HuggingFace `FinBERT` (Sentiment Classification: -1 to 1)
+* **NLP**: FinBERT & Scraping Engine (Processing headlines from 50+ web sources)
 
 ---
 
 ## 📊 Key Features
 
-### 1. Multi-Factor Hybrid Model
-The prediction engine doesn't just look at candles; it analyzes the interplay between:
-* **Technical Momentum**: RSI (14), EMA (20), and Relative Price Change.
-* **Macro Correlations**: USD/PLN exchange rates and Brent Oil price fluctuations.
-* **Sentiment Metrics**: Average Sentiment Score and News Volume (Attention Surge detection).
-* **Core Fundamentals**: P/E Ratio, P/B Ratio, and Net Profit Margins.
+### 1. Deep Sentiment Analysis (NLP)
+The engine scrapes and analyzes headlines from **50+ web sources** per ticker. It doesn't just score sentiment; it identifies and summarizes the most critical information affecting the stock.
 
 
+### 2. Sector Heatmaps
+Real-time sector visualization allows for instant identification of market leaders and laggards. Heatmaps adjust dynamically based on the selected industry sector.
 
-### 2. Alpha Visualization (Relative Strength)
-Instead of absolute price, the terminal plots **Relative Strength**. By setting the sector benchmark to $y=0$, users can instantly see if a stock is outperforming its peers, regardless of overall market volatility.
 
-### 3. Interactive Fundamental Header
-The dashboard features a real-time fundamental summary. Each metric (P/E, P/B, Dividend Yield) is equipped with an interactive tooltip explaining the financial logic behind the number, providing an educational layer to the analysis.
-
-### 4. Real-Time Dynamic UI
-Includes a floating, real-time digital clock and dynamic data refreshing to ensure the AI signals are always based on the latest market conditions.
-
-### 5. Sector Heatmap
+### 3. Multi-Factor Hybrid Prediction
+Predicts price movement for the next **3 hours** by correlating:
+* **Momentum**: RSI, EMA.
+* **Sentiment**: Aggregated score from 50+ news portals.
+* **Fundamentals**: Real-time P/E, P/B, and Margin data with interactive tooltips.
 
 ---
+
+## 🖼️ Preview
+
+### Dashboard Overview
+![Main Dashboard](screenshots/main_dashboard.png)
+*The main terminal view showing real-time price action, sentiment trends, and the floating AI clock.*
+
+### AI Predictions & Fundamentals
+![AI Prediction](screenshots/prediction_and_sentimental.png)
+
+### Sector Heatmap
+![Heatmap](screenshots/heatmap.png)
+
+--- 
 
 ## 🏗 Project Structure
 
