@@ -3,7 +3,7 @@ import yfinance as yf
 from pathlib import Path
 from functools import lru_cache
 
-# Mapowanie sektorów (Yahoo Finance Sector -> Polska nazwa)
+# Sector mapping (Yahoo Finance Sector -> Polish name)
 SECTOR_MAPPING = {
     'Energy': 'Energia',
     'Industrials': 'Przemysł',
@@ -39,7 +39,7 @@ METRICS_CONFIG = [
 
 @lru_cache(maxsize=1)
 def load_companies_from_csv() -> dict:
-    """Ładuje spółki z CSV"""
+    """Loads companies from CSV"""
     csv_path = Path(__file__).parent / 'data' / 'companies.csv'
     
     if not csv_path.exists():
@@ -51,7 +51,7 @@ def load_companies_from_csv() -> dict:
     
     for _, row in df.iterrows():
         ticker = row['ticker']
-        # Sektor z CSV - sprawdzamy czy kolumna istnieje
+        # Sector from CSV - check if column exists
         sector = row['sector'] if 'sector' in row and pd.notna(row['sector']) else None
         
         companies[ticker] = {
@@ -68,13 +68,13 @@ def load_companies_from_csv() -> dict:
 
 def get_sector_from_yahoo(ticker: str) -> str:
     """
-    Pobiera sektor z Yahoo Finance
+    Fetches sector from Yahoo Finance
     
     Args:
-        ticker: Symbol giełdowy
+        ticker: Stock ticker symbol
     
     Returns:
-        Nazwa sektora w języku polskim
+        Sector name in Polish
     """
     try:
         data = yf.Ticker(ticker)
@@ -88,21 +88,21 @@ def get_sector_from_yahoo(ticker: str) -> str:
 @lru_cache(maxsize=1)
 def load_companies_with_sectors() -> dict:
     """
-    Ładuje spółki z CSV i wzbogaca o sektory
-    Jeśli sektor nie jest zdefiniowany w CSV, pobiera z Yahoo Finance
+    Loads companies from CSV and enriches with sectors
+    If sector is not defined in CSV, fetches from Yahoo Finance
     
     Returns:
-        Słownik z informacjami o spółkach
+        Dictionary with company information
     """
     companies = load_companies_from_csv()
     
     print("📊 Weryfikacja sektorów...")
     for ticker, company_info in companies.items():
-        # Jeśli sektor jest zdefiniowany w CSV, używamy go
+        # If sector is defined in CSV, use it
         if company_info.get('sector'):
             print(f"  {ticker}: {company_info['sector']} (z CSV)")
         else:
-            # Fallback: pobieramy z Yahoo Finance
+            # Fallback: fetch from Yahoo Finance
             sector = get_sector_from_yahoo(ticker)
             company_info['sector'] = sector
             print(f"  {ticker}: {sector} (z Yahoo Finance)")
@@ -110,30 +110,30 @@ def load_companies_with_sectors() -> dict:
     return companies
 
 
-# Główny COMPANIES słownik
+# Main COMPANIES dictionary
 COMPANIES = load_companies_with_sectors()
 
 
 def get_company_info(ticker: str) -> dict:
     """
-    Pobiera informacje o spółce
+    Fetches company information
     
     Args:
-        ticker: Symbol giełdowy
+        ticker: Stock ticker symbol
     
     Returns:
-        Słownik z informacjami
+        Information dictionary
     """
     return COMPANIES.get(ticker)
 
 
 def get_all_companies() -> list:
-    """Zwraca listę dostępnych spółek (tickerów)"""
+    """Returns a list of available companies (tickers)"""
     return list(COMPANIES.keys())
 
 
 def get_all_sectors() -> list:
-    """Zwraca unikalne sektory"""
+    """Returns unique sectors"""
     sectors = set()
     for company in COMPANIES.values():
         if company:
@@ -143,13 +143,13 @@ def get_all_sectors() -> list:
 
 def get_companies_by_sector(sector: str) -> list:
     """
-    Zwraca spółki z danego sektora
+    Returns companies from a given sector
     
     Args:
-        sector: Nazwa sektora
+        sector: Sector name
     
     Returns:
-        Lista tickerów spółek
+        List of company tickers
     """
     return [
         ticker for ticker, company in COMPANIES.items()

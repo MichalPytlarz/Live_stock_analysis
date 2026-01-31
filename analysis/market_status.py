@@ -3,19 +3,19 @@ from datetime import datetime, timedelta
 
 def get_market_status():
     """
-    Sprawdza status giełdy i zwraca informację o otwarciu
+    Checks market status and returns opening information
     
     Returns:
         tuple: (is_open: bool, message: str)
     """
     now = datetime.now()
-    weekday = now.weekday()  # 0=Poniedziałek, 6=Niedziela
+    weekday = now.weekday()  # 0=Monday, 6=Sunday
     hour = now.hour
     minute = now.minute
     
-    # Weekend (sobota=5, niedziela=6)
+    # Weekend (Saturday=5, Sunday=6)
     if weekday >= 5:
-        # Ile dni do poniedziałku
+        # Days until Monday
         days_to_monday = 7 - weekday
         monday = now + timedelta(days=days_to_monday)
         monday_9am = monday.replace(hour=9, minute=0, second=0)
@@ -24,20 +24,20 @@ def get_market_status():
         minutes = int((time_diff.total_seconds() % 3600) // 60)
         return False, f"Do otwarcia: {hours}h {minutes}min (Poniedziałek 9:00)"
     
-    # Dzień roboczy
+    # Weekday
     if hour < 9:
-        # Przed otwarciem
+        # Before opening
         opening = now.replace(hour=9, minute=0, second=0)
         time_diff = opening - now
         hours = int(time_diff.total_seconds() // 3600)
         minutes = int((time_diff.total_seconds() % 3600) // 60)
         return False, f"Do otwarcia: {hours}h {minutes}min"
     elif 9 <= hour < 17:
-        # Giełda otwarta
+        # Market open
         return True, "🟢 Giełda otwarta"
     else:
-        # Po zamknięciu - pokaż czas do jutrzejszego otwarcia
-        if weekday == 4:  # Piątek
+        # After close - show time until next opening
+        if weekday == 4:  # Friday
             monday = now + timedelta(days=3)
             monday_9am = monday.replace(hour=9, minute=0, second=0)
             time_diff = monday_9am - now

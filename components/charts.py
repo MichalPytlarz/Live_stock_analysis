@@ -14,17 +14,17 @@ def create_candlestick_chart(
     interval: str = "15m"
 ) -> go.Figure:
     """
-    Tworzy wykres świecowy z sygnałami
+    Creates a candlestick chart with signals
     
     Args:
-        data: DataFrame z danymi OHLC
-        ticker: Symbol papieru wartościowego
-        buy_signals: DataFrame z sygnałami kupna
-        sell_signals: DataFrame z sygnałami sprzedaży
-        interval: Interwał czasowy (1m, 5m, 15m, 1h)
+        data: DataFrame with OHLC data
+        ticker: Security symbol
+        buy_signals: DataFrame with buy signals
+        sell_signals: DataFrame with sell signals
+        interval: Time interval (1m, 5m, 15m, 1h)
     
     Returns:
-        Figura Plotly
+        Plotly figure
     """
     fig = go.Figure(data=[go.Candlestick(
         x=data.index,
@@ -35,7 +35,7 @@ def create_candlestick_chart(
         name='Notowania'
     )])
     
-    # Dodanie linii EMA
+    # Add EMA line
     fig.add_trace(go.Scatter(
         x=data.index,
         y=data['ema_20'],
@@ -45,7 +45,7 @@ def create_candlestick_chart(
         connectgaps=True,
     ))
     
-    # Sygnały kupna
+    # Buy signals
     if buy_signals is not None and not buy_signals.empty:
         fig.add_trace(go.Scatter(
             x=buy_signals.index,
@@ -55,7 +55,7 @@ def create_candlestick_chart(
             name='AI: Sugerowany Wzrost'
         ))
     
-    # Sygnały sprzedaży
+    # Sell signals
     if sell_signals is not None and not sell_signals.empty:
         fig.add_trace(go.Scatter(
             x=sell_signals.index,
@@ -68,30 +68,30 @@ def create_candlestick_chart(
     if "USD" not in ticker:
         fig.update_xaxes(
             rangebreaks=[
-                dict(bounds=["sat", "mon"]), # Usuwa weekendy (od soboty do poniedziałku rano)
-                dict(bounds=[16, 9], pattern="hour"), # Usuwa godziny poza sesją (17:00 - 09:00)
+                dict(bounds=["sat", "mon"]), # Remove weekends (Saturday to Monday morning)
+                dict(bounds=[16, 9], pattern="hour"), # Remove hours outside the session (17:00 - 09:00)
             ]
         )
     
-    # Określenie jednostki waluty na podstawie tickera
+    # Determine currency unit based on ticker
     currency = "USD" if "BTC-USD" in ticker else "PLN"
     
-    # Automatyczne dopasowanie początkowego zakresu do interwału
+    # Auto-fit initial range to interval
     interval_ranges = {
-        "1m": 30,   # Ostatnie 30 minut (30 punktów)
-        "5m": 48,   # Ostatnie 4 godziny (48 punktów)
-        "15m": 32,  # Ostatnie 8 godzin (32 punkty)
-        "1h": len(data)  # Cały zakres
+        "1m": 30,   # Last 30 minutes (30 points)
+        "5m": 48,   # Last 4 hours (48 points)
+        "15m": 32,  # Last 8 hours (32 points)
+        "1h": len(data)  # Full range
     }
     
     points_to_show = interval_ranges.get(interval, len(data))
     start_idx = max(0, len(data) - points_to_show)
     initial_x_range = [data.index[start_idx], data.index[-1]]
     
-    # Obliczanie zakresu Y dla WIDOCZNYCH danych (nie wszystkich)
+    # Calculate Y range for VISIBLE data (not all)
     visible_data = data.iloc[start_idx:]
-    y_min = visible_data[['low', 'ema_20']].min().min() * 0.98  # 2% margines w dół
-    y_max = visible_data[['high', 'ema_20']].max().max() * 1.02  # 2% margines w górę
+    y_min = visible_data[['low', 'ema_20']].min().min() * 0.98  # 2% margin down
+    y_max = visible_data[['high', 'ema_20']].max().max() * 1.02  # 2% margin up
     
     fig.update_layout(
         title=f"Wykres techniczny {ticker}",
@@ -113,13 +113,13 @@ def create_candlestick_chart(
 
 def create_oil_chart(data: pd.DataFrame) -> go.Figure:
     """
-    Tworzy wykres dla ceny ropy Brent
+    Creates a chart for Brent oil price
     
     Args:
-        data: DataFrame z danymi
+        data: DataFrame with data
     
     Returns:
-        Figura Plotly
+        Plotly figure
     """
     fig = go.Figure()
     
@@ -132,13 +132,13 @@ def create_oil_chart(data: pd.DataFrame) -> go.Figure:
         connectgaps=True,
     ))
     
-    # Linie minimum i maksimum
+    # Min and max lines
     oil_min = data['oil_price'].min()
     oil_max = data['oil_price'].max()
     oil_min_idx = data['oil_price'].idxmin()
     oil_max_idx = data['oil_price'].idxmax()
     
-    # Linia minimum
+    # Min line
     fig.add_trace(go.Scatter(
         x=[data.index[0], data.index[-1]],
         y=[oil_min, oil_min],
@@ -147,7 +147,7 @@ def create_oil_chart(data: pd.DataFrame) -> go.Figure:
         name=f'Min: {oil_min:.2f}',
         showlegend=True
     ))
-    # Kropka w miejscu minimum
+    # Dot at min
     fig.add_trace(go.Scatter(
         x=[oil_min_idx],
         y=[oil_min],
@@ -156,7 +156,7 @@ def create_oil_chart(data: pd.DataFrame) -> go.Figure:
         showlegend=False
     ))
     
-    # Linia maksimum
+    # Max line
     fig.add_trace(go.Scatter(
         x=[data.index[0], data.index[-1]],
         y=[oil_max, oil_max],
@@ -165,7 +165,7 @@ def create_oil_chart(data: pd.DataFrame) -> go.Figure:
         name=f'Max: {oil_max:.2f}',
         showlegend=True
     ))
-    # Kropka w miejscu maksimum
+    # Dot at max
     fig.add_trace(go.Scatter(
         x=[oil_max_idx],
         y=[oil_max],
@@ -174,7 +174,7 @@ def create_oil_chart(data: pd.DataFrame) -> go.Figure:
         showlegend=False
     ))
     
-    # Obliczanie zakresu dla ograniczenia zoom
+    # Calculate range to limit zoom
     y_min = data['oil_price'].min() * 0.98
     y_max = data['oil_price'].max() * 1.02
     
@@ -197,8 +197,8 @@ def create_oil_chart(data: pd.DataFrame) -> go.Figure:
 
     fig.update_xaxes(
         rangebreaks=[
-            dict(bounds=["sat", "mon"]), # Usuwa weekendy (od soboty do poniedziałku rano)
-            dict(bounds=[17, 9], pattern="hour"), # Usuwa godziny poza sesją (17:00 - 09:00)
+            dict(bounds=["sat", "mon"]), # Remove weekends (Saturday to Monday morning)
+            dict(bounds=[17, 9], pattern="hour"), # Remove hours outside the session (17:00 - 09:00)
         ]
     )
     
@@ -207,19 +207,19 @@ def create_oil_chart(data: pd.DataFrame) -> go.Figure:
 
 def create_sector_heatmap(companies_data: dict, sector_prices: dict) -> go.Figure:
     """
-    Tworzy heatmapę zmian procentowych spółek w sektorze
+    Creates a heatmap of percentage changes for companies in a sector
     
     Args:
-        companies_data: Słownik danych spółek z config
-        sector_prices: Słownik z danymi cenowymi {ticker: {current_price, prev_price}}
+        companies_data: Companies data dictionary from config
+        sector_prices: Price data dictionary {ticker: {current_price, prev_price}}
     
     Returns:
-        Figura Plotly heatmapy
+        Plotly heatmap figure
     """
     if not sector_prices:
         return None
     
-    # Przygotowanie danych dla heatmapy
+    # Prepare data for the heatmap
     tickers = []
     names = []
     changes = []
@@ -244,7 +244,7 @@ def create_sector_heatmap(companies_data: dict, sector_prices: dict) -> go.Figur
     if not tickers:
         return None
     
-    # Tworzenie heatmapy
+    # Create heatmap
     fig = go.Figure()
     
     fig.add_trace(go.Bar(
@@ -258,7 +258,7 @@ def create_sector_heatmap(companies_data: dict, sector_prices: dict) -> go.Figur
         customdata=names
     ))
     
-    # Obliczanie zakresu dla ograniczenia zoom
+    # Calculate range to limit zoom
     y_min = min(changes) * 1.2 if min(changes) < 0 else min(changes) * 0.8
     y_max = max(changes) * 1.2 if max(changes) > 0 else max(changes) * 0.8
     
@@ -300,16 +300,16 @@ def create_sector_heatmap(companies_data: dict, sector_prices: dict) -> go.Figur
 
 
 def create_combined_chart(price_data, sentiment_df, ticker, sector_data=None, sector_name="Sektor"):
-    # Tworzymy figurę z dwiema osiami Y
+    # Create a figure with two Y axes
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-    # --- STANDARYZACJA CENY SPÓŁKI ---
-    # Obliczamy procentową zmianę względem pierwszej ceny w widocznym zakresie
+    # --- COMPANY PRICE STANDARDIZATION ---
+    # Calculate percent change relative to the first price in the visible range
     ticker_start_price = price_data['close'].iloc[0]
     ticker_norm = ((price_data['close'] / ticker_start_price) - 1) * 100
 
-    # 1. Wykres liniowy ceny ustandaryzowanej (Główna oś Y)
-    # Zmieniamy Candlestick na Scatter (linia), bo świece źle wyglądają po normalizacji %
+    # 1. Standardized price line chart (main Y axis)
+    # Use Scatter instead of Candlestick because candles look bad after % normalization
     fig.add_trace(
         go.Scatter(
             x=price_data.index,
@@ -323,9 +323,9 @@ def create_combined_chart(price_data, sentiment_df, ticker, sector_data=None, se
         secondary_y=False
     )
 
-    # --- STANDARYZACJA BENCHMARKU ---
+    # --- BENCHMARK STANDARDIZATION ---
     if sector_data is not None and not sector_data.empty:
-        # Synchronizacja i normalizacja benchmarku
+        # Sync and normalize benchmark
         sector_resampled = sector_data['close'].reindex(price_data.index).ffill()
         sector_start_price = sector_resampled.iloc[0]
         sector_norm = ((sector_resampled / sector_start_price) - 1) * 100
@@ -343,7 +343,7 @@ def create_combined_chart(price_data, sentiment_df, ticker, sector_data=None, se
             secondary_y=False
         )
 
-    # 2. Wykres sentymentu (Druga oś Y - Prawa)
+    # 2. Sentiment chart (secondary Y axis - right)
     if sentiment_df is not None and not sentiment_df.empty:
         time_col = 'timestamp' if 'timestamp' in sentiment_df.columns else 'trading_timestamp'
         
@@ -359,13 +359,13 @@ def create_combined_chart(price_data, sentiment_df, ticker, sector_data=None, se
             secondary_y=True
         )
 
-    # Linie minimum i maksimum dla ceny (główna oś Y)
+    # Min and max lines for price (main Y axis)
     ticker_min = ticker_norm.min()
     ticker_max = ticker_norm.max()
     ticker_min_idx = ticker_norm.idxmin()
     ticker_max_idx = ticker_norm.idxmax()
     
-    # Linia minimum
+    # Min line
     fig.add_trace(
         go.Scatter(
             x=[price_data.index[0], price_data.index[-1]],
@@ -377,7 +377,7 @@ def create_combined_chart(price_data, sentiment_df, ticker, sector_data=None, se
         ),
         secondary_y=False
     )
-    # Kropka w miejscu minimum
+    # Dot at min
     fig.add_trace(
         go.Scatter(
             x=[ticker_min_idx],
@@ -389,7 +389,7 @@ def create_combined_chart(price_data, sentiment_df, ticker, sector_data=None, se
         secondary_y=False
     )
     
-    # Linia maksimum
+    # Max line
     fig.add_trace(
         go.Scatter(
             x=[price_data.index[0], price_data.index[-1]],
@@ -401,7 +401,7 @@ def create_combined_chart(price_data, sentiment_df, ticker, sector_data=None, se
         ),
         secondary_y=False
     )
-    # Kropka w miejscu maksimum
+    # Dot at max
     fig.add_trace(
         go.Scatter(
             x=[ticker_max_idx],
@@ -413,7 +413,7 @@ def create_combined_chart(price_data, sentiment_df, ticker, sector_data=None, se
         secondary_y=False
     )
 
-    # --- USUNIĘCIE PRZERW GIEŁDOWYCH ---
+    # --- REMOVE MARKET BREAKS ---
     if "USD" not in ticker:
         fig.update_xaxes(
             rangebreaks=[
@@ -422,11 +422,11 @@ def create_combined_chart(price_data, sentiment_df, ticker, sector_data=None, se
             ]
         )
 
-    # Obliczanie zakresu dla ograniczenia zoom
+    # Calculate range to limit zoom
     y_min = min(ticker_norm.min(), sector_norm.min() if sector_data is not None and not sector_data.empty else ticker_norm.min()) * 1.2
     y_max = max(ticker_norm.max(), sector_norm.max() if sector_data is not None and not sector_data.empty else ticker_norm.max()) * 1.2
     
-    # Stylizacja Layoutu
+    # Layout styling
     fig.update_layout(
         title=f"Analiza Porównawcza (Normalizacja %): {ticker} vs {sector_name}",
         xaxis_rangeslider_visible=False,
@@ -440,7 +440,7 @@ def create_combined_chart(price_data, sentiment_df, ticker, sector_data=None, se
         dragmode='pan'
     )
     
-    # Ustawienia dla głównej osi Y z ograniczeniem
+    # Settings for the main Y axis with limits
     fig.update_yaxes(
         title_text="Zmiana skumulowana (%)",
         secondary_y=False,
@@ -450,7 +450,7 @@ def create_combined_chart(price_data, sentiment_df, ticker, sector_data=None, se
         range=[y_min, y_max]
     )
 
-    # Ustawienia dla osi sentymentu
+    # Settings for the sentiment axis
     fig.update_yaxes(title_text="Sentyment NLP (-1 do 1)", secondary_y=True, range=[-1.1, 1.1], showgrid=False)
 
     return fig

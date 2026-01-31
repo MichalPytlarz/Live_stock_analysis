@@ -1,1 +1,1 @@
-# Moduł serwisów działających w tle
+# Background services module

@@ -5,14 +5,14 @@ from pathlib import Path
 
 
 class ModelPredictor:
-    """Klasa do zarządzania modelami ML i predykcjami"""
+    """Class for managing ML models and predictions"""
     
     def __init__(self, model_path: str = 'pkn_wa_ai_model.pkl'):
         """
-        Inicjalizuje predictor
+        Initializes the predictor
         
         Args:
-            model_path: Ścieżka do pliku modelu
+            model_path: Path to the model file
         """
         self.model_path = model_path
         self.model = None
@@ -24,25 +24,25 @@ class ModelPredictor:
         self.load_model()
     
     def load_model(self):
-        """Ładuje model z pliku"""
+        """Loads the model from file"""
         if Path(self.model_path).exists():
             self.model = joblib.load(self.model_path)
         else:
             self.model = None
     
     def is_model_available(self) -> bool:
-        """Sprawdza czy model jest dostępny"""
+        """Checks whether the model is available"""
         return self.model is not None
     
     def predict(self, data: pd.DataFrame) -> tuple:
         """
-        Wykonuje predykcję
+        Runs prediction
         
         Args:
-            data: DataFrame z wymaganymi cechami
+            data: DataFrame with required features
         
         Returns:
-            (predictions, probabilities) - tablice z predykcjami i prawdopodobieństwami
+            (predictions, probabilities) - arrays with predictions and probabilities
         """
         if not self.is_model_available():
             raise ValueError("Model nie został załadowany")
@@ -63,13 +63,13 @@ class ModelPredictor:
     
     def get_last_prediction(self, data: pd.DataFrame) -> dict:
         """
-        Zwraca predykcję dla ostatniego wiersza danych
+        Returns a prediction for the last data row
         
         Args:
-            data: DataFrame z danymi
+            data: DataFrame with data
         
         Returns:
-            Słownik z predykcją, prawdopodobieństwem i klasą
+            Dictionary with prediction, probability, and class
         """
         if not self.is_model_available():
             return None
@@ -93,14 +93,14 @@ class ModelPredictor:
     
     def generate_signals(self, data: pd.DataFrame, min_confidence: float = 0.65) -> pd.DataFrame:
         """
-        Generuje sygnały kupna/sprzedaży na podstawie modelu
+        Generates buy/sell signals based on the model
         
         Args:
-            data: DataFrame z danymi
-            min_confidence: Minimalna pewność dla sygnału (0.0 - 1.0)
+            data: DataFrame with data
+            min_confidence: Minimum confidence for a signal (0.0 - 1.0)
         
         Returns:
-            DataFrame z dodatkowymi kolumnami (buy_signal, sell_signal)
+            DataFrame with additional columns (buy_signal, sell_signal)
         """
         if not self.is_model_available():
             return data.copy()
@@ -108,7 +108,7 @@ class ModelPredictor:
         data = data.copy()
         _, probabilities = self.predict(data)
         
-        # Sygnały
+        # Signals
         data['buy_signal'] = (probabilities[:, 1] > min_confidence).astype(int)
         data['sell_signal'] = (probabilities[:, 0] > min_confidence).astype(int)
         

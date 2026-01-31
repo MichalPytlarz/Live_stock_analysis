@@ -13,27 +13,27 @@ from services.get_fundamental_data import get_fundamental_data
 from datetime import datetime, timedelta
 import plotly.graph_objects as go
 import pandas as pd
-# Konfiguracja Streamlit
+# Streamlit configuration
 st.set_page_config(page_title="Stock Analysis Dashboard", layout="wide")
 
-# Wyświetl zegar
+# Display the clock
 add_dynamic_clock()
 
-# Nagłówek
+# Header
 st.markdown("# 📈 Analiza rynkow gieldowych")
 
-# Sidebar - Wybór sektora
+# Sidebar - sector selection
 st.sidebar.header("🎯 Wybór opcji")
 view_mode = st.sidebar.radio("Wybierz tryb widoku:", ["📈 Analiza spółek", "🔥 Heatmapa sektora"])
 
-# Pobierz wszystkie sektory
+# Fetch all sectors
 all_sectors = get_all_sectors()
 selected_sector = st.sidebar.selectbox("Sektor:", all_sectors)
 
-# Pobierz spółki z wybranego sektora
+# Fetch companies from the selected sector
 companies_in_sector = get_companies_by_sector(selected_sector)
 
-# Status Sentiment Workera w sidebarze
+# Sentiment worker status in the sidebar
 st.sidebar.markdown("---")
 st.sidebar.subheader("🤖 Status Workera NLP")
 last_update = get_worker_status()
@@ -55,17 +55,17 @@ else:
 def display_sentiment_section(ticker):
     st.subheader("📰 Zaawansowana Analiza Sentymentu (NLP)")
     
-    # Pobierz historię z bazy
+    # Fetch history from the database
     df_sentiment = get_sentiment_trend(ticker, limit=20)
     
     if not df_sentiment.empty:
         last_score = df_sentiment['avg_score'].iloc[0]
         
-        # Wyświetl metrykę
+        # Display metric
         col1, col2 = st.columns([1, 2])
         col1.metric("Sentyment FinBERT", f"{last_score:.4f}", delta=None)
         
-        # Wyświetl wykres trendu z formatowaniem osi Y
+        # Display trend chart with Y-axis formatting
         with col2:
             df_sentiment['timestamp'] = pd.to_datetime(df_sentiment['timestamp'])
             
@@ -79,13 +79,13 @@ def display_sentiment_section(ticker):
                 marker=dict(size=6)
             ))
             
-            # Linie minimum i maksimum
+            # Min and max lines
             sentiment_min = df_sentiment['avg_score'].min()
             sentiment_max = df_sentiment['avg_score'].max()
             sentiment_min_idx = df_sentiment['avg_score'].idxmin()
             sentiment_max_idx = df_sentiment['avg_score'].idxmax()
             
-            # Linia minimum
+            # Min line
             fig.add_trace(go.Scatter(
                 x=[df_sentiment['timestamp'].iloc[0], df_sentiment['timestamp'].iloc[-1]],
                 y=[sentiment_min, sentiment_min],
@@ -94,7 +94,7 @@ def display_sentiment_section(ticker):
                 name=f'Min: {sentiment_min:.4f}',
                 showlegend=True
             ))
-            # Kropka w miejscu minimum
+            # Dot at min
             fig.add_trace(go.Scatter(
                 x=[df_sentiment.loc[sentiment_min_idx, 'timestamp']],
                 y=[sentiment_min],
@@ -103,7 +103,7 @@ def display_sentiment_section(ticker):
                 showlegend=False
             ))
             
-            # Linia maksimum
+            # Max line
             fig.add_trace(go.Scatter(
                 x=[df_sentiment['timestamp'].iloc[0], df_sentiment['timestamp'].iloc[-1]],
                 y=[sentiment_max, sentiment_max],
@@ -112,7 +112,7 @@ def display_sentiment_section(ticker):
                 name=f'Max: {sentiment_max:.4f}',
                 showlegend=True
             ))
-            # Kropka w miejscu maksimum
+            # Dot at max
             fig.add_trace(go.Scatter(
                 x=[df_sentiment.loc[sentiment_max_idx, 'timestamp']],
                 y=[sentiment_max],
@@ -151,10 +151,10 @@ def render_dashboard(ticker: str):
 
     for col, config in zip(cols, METRICS_CONFIG):
         with col:
-            # Pobieramy wartość
+            # Fetch the value
             raw_value = fundamentals.get(config["key"])
             
-            # Logika wyświetlania: formatuj tylko jeśli jest liczbą, inaczej wyświetl "N/A"
+            # Display logic: format only if numeric, otherwise show "N/A"
             if isinstance(raw_value, (int, float)):
                 display_value = config["format"].format(raw_value)
             else:
@@ -174,7 +174,7 @@ def render_dashboard(ticker: str):
     
     st.title(f"📊 Monitorowanie {company['name']} ({ticker}) na żywo")
     
-    # Ustawienie interwału nad wykresem + Status giełdy
+    # Interval selector above chart + market status
     col_interval, col_spacer, col_market = st.columns([1, 2, 2])
     with col_interval:
         interval = st.selectbox("⏱️ Interwał", ["1m", "5m", "15m", "1h"], index=2, key=f"interval_{ticker}")
@@ -186,10 +186,10 @@ def render_dashboard(ticker: str):
         else:
             st.info(market_msg)
 
-    # Pobieranie danych
+    # Fetch data
     data = load_data_cached(ticker, period="5d", interval=interval, include_oil=include_oil)
     
-    # Validacja danych
+    # Data validation
     if data.empty:
         st.error("Błąd: Nie udało się pobrać danych. Sprawdź połączenie z internetem lub czy symbol jest poprawny.")
         return
@@ -198,12 +198,12 @@ def render_dashboard(ticker: str):
         st.warning("Pobrano zbyt mało danych, aby obliczyć wskaźniki (RSI/EMA). Spróbuj zwiększyć okres (period).")
         return
     
-    # Inicjalizacja modelu
+    # Model initialization
     predictor = ModelPredictor(model_path)
     
-    # Jeśli model jest dostępny, generujemy sygnały
+    # If the model is available, generate signals
     if predictor.is_model_available():
-        # Filtrowanie AI w głównym obszarze (specyficzne dla każdej załadki)
+        # AI filtering in the main area (specific to each tab)
         with st.expander("⚙️ Filtrowanie AI", expanded=True):
             min_confidence = st.slider("Minimalna pewność modelu (%)", 50, 90, 65, key=f"confidence_{ticker}") / 100
         
@@ -215,27 +215,27 @@ def render_dashboard(ticker: str):
         data['buy_signal'] = 0
         data['sell_signal'] = 0
     
-    # Filtrowanie sygnałów
+    # Signal filtering
     buy_signals = data[data['buy_signal'] == 1]
     sell_signals = data[data['sell_signal'] == 1]
     
-    # Wyświetlenie metryk
+    # Display metrics
     display_metrics(data, ticker=ticker, include_oil=include_oil)
     
-    # Wykres świecowy
+    # Candlestick chart
     fig = create_candlestick_chart(data, ticker, buy_signals, sell_signals, interval)
     st.plotly_chart(fig, use_container_width=True, key=f"candlestick_{ticker}", config={'scrollZoom': True})
     
-    # Wykres ropy Brent (tylko dla spółek energetycznych)
+    # Brent oil chart (only for energy companies)
     if include_oil and 'oil_price' in data.columns:
         fig_oil = create_oil_chart(data)
         st.plotly_chart(fig_oil, use_container_width=True, key=f"oil_{ticker}", config={'scrollZoom': True})
 
 
-    ## Analiza NLP nastrojow z uwzglednieniem historii
+    ## NLP sentiment analysis with history
     sentiment = display_sentiment_section(ticker)
 
-    bench_ticker, bench_name = get_sector_info(ticker) # Twoja funkcja mapująca
+    bench_ticker, bench_name = get_sector_info(ticker) # Your mapping function
     sector_price_data = load_data_cached(bench_ticker, period="7d", interval="1h")
     
     sentiment_df= get_processed_sentiment(sentiment)
@@ -249,13 +249,13 @@ def render_dashboard(ticker: str):
     sector_name=bench_name
 )
 
-    # 4. Wyświetl
+    # 4. Display
     st.plotly_chart(fig, use_container_width=True, config={'scrollZoom': True})
 
-    # Predykcja modelu
+    # Model prediction
     display_prediction(prediction_result)
     
-    # Sentiment dla aktualnej spółki (BEZ HISTORII - aktualne dane)
+    # Sentiment for the current company (NO HISTORY - current data)
     st.markdown("---")
     st.subheader("📰 Analiza nastrojów z wiadomości")
     sentiment_score, headlines = get_reliable_sentiment(ticker)
@@ -280,15 +280,15 @@ def render_dashboard(ticker: str):
 
 
 
-# Zakładki dla spółek w sektorze lub Heatmapa
+# Tabs for companies in the sector or heatmap
 if view_mode == "📈 Analiza spółek":
-    # Tryb analizy spółek
+    # Company analysis mode
     if companies_in_sector:
         st.subheader(f"📊 Spółki z sektora: {selected_sector}")
         
         tab_titles = [f"{get_company_info(ticker)['emoji']} {get_company_info(ticker)['name']}" for ticker in companies_in_sector]
         
-        # Znaleźć domyślnie Orlen (PKN.WA)
+        # Find Orlen (PKN.WA) by default
         default_idx = 0
         for i, ticker in enumerate(companies_in_sector):
             if ticker == 'PKN.WA':
@@ -305,11 +305,11 @@ if view_mode == "📈 Analiza spółek":
         st.warning("Brak spółek w wybranym sektorze")
 
 else:
-    # Tryb heatmapy sektora
+    # Sector heatmap mode
     st.subheader(f"🔥 Heatmapa sektora: {selected_sector}")
     
     if companies_in_sector:         
-        # Pobieranie aktualnych cen dla spółek
+        # Fetch current prices for companies
         sector_prices = {}
         with st.spinner("Pobieranie danych cen..."):
             for ticker in companies_in_sector:
@@ -325,7 +325,7 @@ else:
                 except Exception as e:
                     st.warning(f"⚠️ Błąd pobierania danych dla {ticker}: {str(e)}")
         
-        # Wyświetlenie heatmapy
+        # Display heatmap
         if sector_prices:
             heatmap_fig = create_sector_heatmap(COMPANIES, sector_prices)
             if heatmap_fig:

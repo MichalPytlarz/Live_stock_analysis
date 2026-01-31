@@ -1,5 +1,5 @@
 def generate_analyst_verdict(ticker_change, sector_change, avg_sentiment):
-    # Relacja spółka vs sektor (tzw. Alpha)
+    # Company vs sector relationship (so-called alpha)
     alpha = ticker_change - sector_change
     
     if avg_sentiment > 0.2:

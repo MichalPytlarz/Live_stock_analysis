@@ -2,26 +2,26 @@ import yfinance as yf
 from config import SECTOR_MAPPING
 def format_market_cap(market_cap):
     """
-    Formatuje kapitalizację rynkową w odpowiednich jednostkach
+    Formats market capitalization in appropriate units
     
     Args:
-        market_cap: Kapitalizacja w wartości bazowej
+        market_cap: Capitalization in base units
     
     Returns:
-        Sformatowany string z odpowiednią jednostką
+        Formatted string with appropriate unit
     """
     if market_cap == 0 or market_cap is None:
         return "N/A"
     
-    # Konwertuj na miliardy jeśli >= 1 miliard
+    # Convert to billions if >= 1 billion
     if market_cap >= 1_000_000_000:
         value = market_cap / 1_000_000_000
         return f"{value:.2f} MLD"
-    # Konwertuj na miliony jeśli >= 1 milion
+    # Convert to millions if >= 1 million
     elif market_cap >= 1_000_000:
         value = market_cap / 1_000_000
         return f"{value:.2f} MLN"
-    # Dla wartości mniejszych niż milion
+    # For values smaller than a million
     else:
         return f"{market_cap:,.0f}"
 
@@ -29,12 +29,12 @@ def get_fundamental_data(ticker):
     stock = yf.Ticker(ticker)
     info = stock.info
     
-    # Pobierz sektor z Yahoo Finance
+    # Fetch sector from Yahoo Finance
     sector_en = info.get("sector", "Unknown")
-    # Mapuj na polską nazwę
+    # Map to Polish name
     sector_pl = SECTOR_MAPPING.get(sector_en, "Inne")
     
-    # Wybieramy tylko to, co nas interesuje
+    # Select only what we need
     fundamentals = {
         "name": info.get("longName", ticker),
         "sector": sector_pl,

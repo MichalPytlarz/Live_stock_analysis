@@ -8,26 +8,26 @@ import streamlit as st
 import sys
 import os
 
-# Dodaj katalog główny do ścieżki
+# Add the project root to the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import get_company_info
 
 
 google_news = GNews(language='pl', country='PL', period='7d', max_results=5)
 
-@st.cache_data(ttl=3600) # dla odswiezania strony co 1h
+@st.cache_data(ttl=3600) # for page refresh every 1h
 def get_reliable_sentiment(ticker: str):
     """
-    Pobiera sentyment newsów dla spółki
+    Fetches news sentiment for a company
     
     Args:
-        ticker: Symbol giełdowy (np. PKN.WA)
+        ticker: Stock ticker symbol (e.g., PKN.WA)
     
     Returns:
-        (avg_sentiment, headlines) - średni sentyment (-1 do 1) i lista nagłówków
+        (avg_sentiment, headlines) - average sentiment (-1 to 1) and list of headlines
     """
     try:
-        # Pobieramy nazwę spółki z config
+        # Get company name from config
         company = get_company_info(ticker)
         if not company:
             return 0.0, []
@@ -41,11 +41,11 @@ def get_reliable_sentiment(ticker: str):
         headlines = [item['title'] for item in news]
         sentiments = []
 
-        # Tworzymy translator (synchroniczny)
+        # Create translator (synchronous)
         translator = GoogleTranslator(source='pl', target='en')
 
         for text in headlines:
-            # Tłumaczenie odbywa się teraz bez błędów "coroutine"
+            # Translation now runs without "coroutine" errors
             translated = translator.translate(text)
             score = TextBlob(translated).sentiment.polarity
             sentiments.append(score)
@@ -56,14 +56,14 @@ def get_reliable_sentiment(ticker: str):
         avg_sentiment = sum(sentiments) / len(sentiments)
         return avg_sentiment, headlines
     except Exception as e:
-        # Logowanie błędu do konsoli dla Ciebie
+        # Log error to the console for you
         st.sidebar.error(f"Sentyment Error ({ticker}): {e}")
         return 0.0, []
 
 
 
 def get_sentiment_emoji(score):
-    """Zwraca tekst sentymentu z emoji"""
+    """Returns sentiment text with emoji"""
     if score > 0.1:
         return "🟢 POZYTYWNY"
     elif score < -0.1:
@@ -73,7 +73,7 @@ def get_sentiment_emoji(score):
 
 
 def get_sentiment_text(score):
-    """Zwraca szczegółowy opis sentymentu"""
+    """Returns a detailed sentiment description"""
     if score > 0.5:
         return "Bardzo pozytywny"
     elif score > 0.1:

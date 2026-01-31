@@ -7,20 +7,20 @@ from pathlib import Path
 import sys
 import os
 
-# Dodaj katalog główny do ścieżki
+# Add the project root to the path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import COMPANIES
 
 def get_sentiment_data_from_db(ticker: str) -> pd.DataFrame:
     """
-    Tu powinieneś podpiąć zapytanie do swojej bazy SQLite.
-    Zwraca DataFrame z kolumnami [timestamp, sentiment_score, news_volume]
+    Here you should connect a query to your SQLite database.
+    Returns a DataFrame with columns [timestamp, sentiment_score, news_volume]
     """
-    # Tymczasowo zwracamy pusty DF, jeśli nie masz jeszcze modułu pobierania z DB
+    # Temporarily return an empty DF if you don't have a DB fetch module yet
     return pd.DataFrame(columns=['sentiment_score', 'news_volume'])
 
 def get_fundamental_data(ticker: str):
-    """Pobiera aktualne wskaźniki fundamentalne"""
+    """Fetches current fundamental metrics"""
     try:
         stock = yf.Ticker(ticker)
         info = stock.info
@@ -35,7 +35,7 @@ def get_fundamental_data(ticker: str):
 def prepare_data(ticker: str, period: str = "2y", interval: str = "1h", include_oil: bool = True) -> pd.DataFrame:
     print(f"📊 Pobieranie danych dla {ticker} ({period}, {interval})...")
     
-    # 1. Pobieranie danych cenowych
+    # 1. Fetch price data
     stock = yf.download(ticker, period=period, interval=interval)
     if isinstance(stock.columns, pd.MultiIndex):
         stock.columns = stock.columns.get_level_values(0)
@@ -43,7 +43,7 @@ def prepare_data(ticker: str, period: str = "2y", interval: str = "1h", include_
     df = stock.copy()
     df.columns = df.columns.str.lower()
     
-    # 2. Dane zewnętrzne (Ropa, USDPLN)
+    # 2. External data (Oil, USDPLN)
     if include_oil:
         oil = yf.download("BZ=F", period=period, interval=interval)['Close']
         if isinstance(oil, pd.DataFrame): oil = oil.iloc[:, 0]
@@ -55,14 +55,14 @@ def prepare_data(ticker: str, period: str = "2y", interval: str = "1h", include_
     
     df = df.ffill().sort_index()
     
-    # 3. Wskaźniki techniczne
+    # 3. Technical indicators
     stock_indicators = StockDataFrame.retype(df.copy())
     df['rsi'] = stock_indicators['rsi_14']
     df['ema_20'] = stock_indicators['close_20_ema']
     df['oil_chg'] = df['oil_price'].pct_change(fill_method=None) if include_oil else 0
     df['usd_chg'] = df['usdpln'].pct_change(fill_method=None)
     
-    # 4. NOWOŚĆ: Sentyment (Merge asof - dopasowanie newsa do najbliższej godziny ceny)
+    # 4. NEW: Sentiment (merge_asof matches news to the nearest prior price hour)
     sentiment_df = get_sentiment_data_from_db(ticker)
     if not sentiment_df.empty:
         sentiment_df['timestamp'] = pd.to_datetime(sentiment_df['timestamp'])
@@ -72,13 +72,13 @@ def prepare_data(ticker: str, period: str = "2y", interval: str = "1h", include_
         df['sentiment_score'] = 0
         df['news_volume'] = 0
     
-    # 5. NOWOŚĆ: Fundamenty (przypisujemy obecne wartości do całej historii)
+    # 5. NEW: Fundamentals (apply current values to the full history)
     fundamentals = get_fundamental_data(ticker)
     df['pe_ratio'] = fundamentals['pe_ratio']
     df['pb_ratio'] = fundamentals['pb_ratio']
     df['profit_margin'] = fundamentals['profit_margin']
     
-    # 6. Target: Czy cena za 3h będzie wyższa?
+    # 6. Target: Will price be higher in 3 hours?
     df['target'] = (df['close'].shift(-3) > df['close']).astype(int)
     
     return df.dropna()
@@ -91,7 +91,7 @@ def train_model(ticker: str, model_path: str, company_name: str, include_oil: bo
             print(f"❌ Błąd: Brak danych dla {company_name}")
             return False
         
-        # Zaktualizowana lista cech (musi być zgodna z ModelPredictor)
+        # Updated feature list (must match ModelPredictor)
         features = [
             'rsi', 'ema_20', 'close', 'oil_chg', 'usd_chg', 
             'sentiment_score', 'news_volume', 
@@ -115,7 +115,7 @@ def train_model(ticker: str, model_path: str, company_name: str, include_oil: bo
         
         model.fit(X, y)
         
-        # Zapis
+        # Save
         model_dir = Path(model_path).parent
         model_dir.mkdir(parents=True, exist_ok=True)
         joblib.dump(model, model_path)
@@ -130,7 +130,7 @@ def train_model(ticker: str, model_path: str, company_name: str, include_oil: bo
         return False
 
 def train_all_models():
-    """Trenuje modele dla wszystkich spółek"""
+    """Trains models for all companies"""
     print("🚀 Rozpoczęcie trenowania modeli dla wszystkich spółek...\n")
     
     success_count = 0

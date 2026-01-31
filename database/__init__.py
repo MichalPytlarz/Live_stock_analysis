@@ -1,1 +1,1 @@
-# Moduł zarządzania bazą danych
+# Database management module

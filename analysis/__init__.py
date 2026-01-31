@@ -1,1 +1,1 @@
-# Moduł analizy rynku
+# Market analysis module

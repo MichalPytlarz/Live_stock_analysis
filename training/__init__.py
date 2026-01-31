@@ -1,1 +1,1 @@
-# Moduł treningu modeli ML
+# ML model training module

@@ -7,26 +7,26 @@ from database.database_manager import get_sentiment_trend
 
 def get_sentiment_for_model(ticker: str) -> pd.DataFrame:
     """
-    Pobiera dane sentymentu z bazy dla modelu ML
+    Fetches sentiment data from the database for the ML model
     
     Args:
-        ticker: Symbol giełdowy
+        ticker: Stock ticker symbol
     
     Returns:
-        DataFrame z kolumnami [timestamp, sentiment_score, news_volume]
+        DataFrame with columns [timestamp, sentiment_score, news_volume]
     """
     try:
-        # Pobierz ostatnie 100 wpisów sentymentu
+        # Fetch last 100 sentiment entries
         sentiment_df = get_sentiment_trend(ticker, limit=100)
         
         if sentiment_df.empty:
             return pd.DataFrame(columns=['timestamp', 'sentiment_score', 'news_volume'])
         
-        # Przygotuj DataFrame
+        # Prepare DataFrame
         sentiment_df['timestamp'] = pd.to_datetime(sentiment_df['timestamp'])
         sentiment_df = sentiment_df.rename(columns={'avg_score': 'sentiment_score'})
         
-        # news_volume - jeśli nie ma w bazie, ustaw na 1
+        # news_volume - if missing in DB, set to 1
         if 'news_count' in sentiment_df.columns:
             sentiment_df = sentiment_df.rename(columns={'news_count': 'news_volume'})
         else:
@@ -39,7 +39,7 @@ def get_sentiment_for_model(ticker: str) -> pd.DataFrame:
 
 
 def get_fundamental_features(ticker: str) -> dict:
-    """Pobiera wskaźniki fundamentalne dla spółki"""
+    """Fetches fundamental metrics for a company"""
     try:
         stock = yf.Ticker(ticker)
         info = stock.info
@@ -54,34 +54,34 @@ def get_fundamental_features(ticker: str) -> dict:
 
 def fetch_market_data(ticker: str, period: str = "3d", interval: str = "15m", include_oil: bool = True) -> pd.DataFrame:
     """
-    Pobiera dane dla głównego papieru wartościowego oraz dane pomocnicze (ropa, USD/PLN)
+    Fetches data for the main security and auxiliary data (oil, USD/PLN)
     
     Args:
-        ticker: Symbol giełdowy (np. "PKN.WA")
-        period: Okres pobierania (np. "3d", "1d")
-        interval: Interwał czasu (np. "15m", "1h", "1d")
-        include_oil: Czy pobierać dane o ropie Brent
+        ticker: Stock ticker symbol (e.g., "PKN.WA")
+        period: Download period (e.g., "3d", "1d")
+        interval: Time interval (e.g., "15m", "1h", "1d")
+        include_oil: Whether to fetch Brent oil data
     
     Returns:
-        DataFrame z synchronizowanymi danymi
+        DataFrame with synchronized data
     """
     try:
-        # Pobieramy dane akcji
+        # Fetch stock data
         stock = yf.download(ticker, period=period, interval=interval)
         
-        # Pobieramy opcjonalnie ropę i USD/PLN
+        # Optionally fetch oil and USD/PLN
         if include_oil:
             oil = yf.download("BZ=F", period=period, interval=interval)['Close']
         usdpln = yf.download("PLN=X", period=period, interval=interval)['Close']
         
-        # Naprawa MultiIndex (dla yfinance)
+        # Fix MultiIndex (for yfinance)
         if isinstance(stock.columns, pd.MultiIndex):
             stock.columns = stock.columns.get_level_values(0)
         
         df = stock.copy()
         df.columns = df.columns.str.lower()
         
-        # Synchronizacja danych
+        # Synchronize data
         if include_oil:
             df['oil_price'] = oil
         df['usdpln'] = usdpln
@@ -94,19 +94,19 @@ def fetch_market_data(ticker: str, period: str = "3d", interval: str = "15m", in
 
 def engineer_features(df: pd.DataFrame, ticker: str, include_oil: bool = True) -> pd.DataFrame:
     """
-    Dodaje engineerskie cechy dla modelu ML (RSI, EMA, zmiana procentowa)
+    Adds engineered features for the ML model (RSI, EMA, percent change)
     
     Args:
-        df: DataFrame z danymi rynkowymi
-        ticker: Symbol giełdowy (do pobrania fundamentów)
-        include_oil: Czy używać ceny ropy jako cechy
+        df: DataFrame with market data
+        ticker: Stock ticker symbol (for fundamentals)
+        include_oil: Whether to use oil price as a feature
     
     Returns:
-        DataFrame z dodatkowymi kolumnami
+        DataFrame with additional columns
     """
     df = df.copy()
     
-    # Feature Engineering
+    # Feature engineering
     stock = StockDataFrame.retype(df.copy())
     df['rsi'] = stock['rsi_14']
     df['ema_20'] = stock['close_20_ema']
@@ -114,22 +114,22 @@ def engineer_features(df: pd.DataFrame, ticker: str, include_oil: bool = True) -
     if include_oil and 'oil_price' in df.columns:
         df['oil_chg'] = df['oil_price'].pct_change(fill_method=None)
     else:
-        df['oil_chg'] = 0  # Domyślna wartość jeśli nie mamy danych o ropie
+        df['oil_chg'] = 0  # Default value if oil data is missing
     
     df['usd_chg'] = df['usdpln'].pct_change(fill_method=None)
     
-    # Target - wzrost za 3 godziny
+    # Target - increase over the next 3 hours
     df['target'] = (df['close'].shift(-3) > df['close']).astype(int)
     
-    # NOWOŚĆ: Dodanie sentymentu z bazy danych
+    # NEW: Add sentiment from the database
     sentiment_df = get_sentiment_for_model(ticker)
     
     if not sentiment_df.empty:
-        # Synchronizuj timezone - usuń timezone z indexu df jeśli istnieje
+        # Sync timezone - remove timezone from df index if present
         if df.index.tz is not None:
             df.index = df.index.tz_localize(None)
         
-        # Synchronizacja danych sentymentu z cenami (merge_asof dopasowuje najbliższy wcześniejszy timestamp)
+        # Synchronize sentiment with prices (merge_asof matches the nearest earlier timestamp)
         df = pd.merge_asof(
             df.sort_index(), 
             sentiment_df.sort_index(), 
@@ -137,18 +137,18 @@ def engineer_features(df: pd.DataFrame, ticker: str, include_oil: bool = True) -
             right_index=True, 
             direction='backward'
         )
-        # Forward fill - propaguj ostatnią znaną wartość sentymentu
+        # Forward fill - propagate the last known sentiment value
         df['sentiment_score'] = df['sentiment_score'].ffill()
         df['news_volume'] = df['news_volume'].ffill()
-        # Wypełnij pozostałe NaN zerami (jeśli nie ma wcześniejszych danych)
+        # Fill remaining NaNs with zeros (if no earlier data)
         df['sentiment_score'] = df['sentiment_score'].fillna(0)
         df['news_volume'] = df['news_volume'].fillna(0)
     else:
-        # Jeśli brak danych sentymentu, ustaw na 0
+        # If sentiment data is missing, set to 0
         df['sentiment_score'] = 0
         df['news_volume'] = 0
     
-    # NOWOŚĆ: Dodanie fundamentów
+    # NEW: Add fundamentals
     fundamentals = get_fundamental_features(ticker)
     df['pe_ratio'] = fundamentals['pe_ratio']
     df['pb_ratio'] = fundamentals['pb_ratio']
@@ -160,16 +160,16 @@ def engineer_features(df: pd.DataFrame, ticker: str, include_oil: bool = True) -
 @st.cache_data(ttl=60)
 def load_data_cached(ticker: str, period: str = "3d", interval: str = "15m", include_oil: bool = True) -> pd.DataFrame:
     """
-    Pobiera i inżynieruje cechy z cache'owaniem (TTL 60 sekund)
+    Fetches and engineers features with caching (TTL 60 seconds)
     
     Args:
-        ticker: Symbol giełdowy
-        period: Okres pobierania
-        interval: Interwał czasu
-        include_oil: Czy pobierać dane o ropie
+        ticker: Stock ticker symbol
+        period: Download period
+        interval: Time interval
+        include_oil: Whether to fetch oil data
     
     Returns:
-        Przygotowany DataFrame gotowy do predykcji
+        Prepared DataFrame ready for prediction
     """
     raw_data = fetch_market_data(ticker, period, interval, include_oil=include_oil)
     return engineer_features(raw_data, ticker, include_oil=include_oil)

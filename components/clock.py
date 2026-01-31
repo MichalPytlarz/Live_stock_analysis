@@ -2,7 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 def add_dynamic_clock():
-    # Definiujemy styl i skrypt wewnątrz jednego bloku HTML
+    # Define style and script inside a single HTML block
     clock_code = """
     <div id="clock" style="
         font-family: 'Courier New', monospace;
@@ -31,7 +31,7 @@ def add_dynamic_clock():
     </script>
     """
     
-    # Tworzymy sidebar lub umieszczamy w prawym górnym rogu za pomocą kolumn
+    # Create sidebar or place in the top-right corner using columns
     with st.sidebar:
         st.markdown("---")
         components.html(clock_code, height=100)

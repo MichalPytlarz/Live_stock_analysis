@@ -6,7 +6,7 @@ import plotly.express as px
 def get_market_overview(companies_dict):
     overview_list = []
     for ticker, info in companies_dict.items():
-        # Pobieramy dane (interwał 1d, okres 2d, aby obliczyć zmianę)
+        # Fetch data (1d interval, 2d period to compute change)
         df = yf.download(ticker, period="2d", interval="1d", progress=False)
         if not df.empty and len(df) >= 2:
             last_close = df['Close'].iloc[-1]
@@ -26,10 +26,10 @@ def get_market_overview(companies_dict):
 def create_sector_heatmap(df):
     fig = px.treemap(
         df,
-        path=[px.Constant("GPW & Inne"), 'sector', 'name'], # Hierarchia: Rynek -> Sektor -> Spółka
-        values=None, # Możesz tu wstawić wolumen, jeśli go pobierasz
+        path=[px.Constant("GPW & Inne"), 'sector', 'name'], # Hierarchy: Market -> Sector -> Company
+        values=None, # You can insert volume here if you fetch it
         color='change',
-        color_continuous_scale='RdYlGn', # Skala: Red-Yellow-Green
+        color_continuous_scale='RdYlGn', # Scale: Red-Yellow-Green
         color_continuous_midpoint=0,
         hover_data=['price', 'ticker'],
         custom_data=['change']
