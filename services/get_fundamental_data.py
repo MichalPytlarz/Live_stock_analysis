@@ -35,13 +35,19 @@ def get_fundamental_data(ticker):
     sector_pl = SECTOR_MAPPING.get(sector_en, "Inne")
     
     # Select only what we need
+    raw_div_yield = info.get("dividendYield")
+    if raw_div_yield is None:
+        div_yield = 0
+    else:
+        div_yield = raw_div_yield if raw_div_yield > 1 else raw_div_yield * 100
+
     fundamentals = {
         "name": info.get("longName", ticker),
         "sector": sector_pl,
         "pe_ratio": info.get("trailingPE", "N/A"),
         "forward_pe": info.get("forwardPE", "N/A"),
         "pb_ratio": info.get("priceToBook", "N/A"),
-        "div_yield": info.get("dividendYield", 0) * 100 if info.get("dividendYield") else 0,
+        "div_yield": div_yield,
         "margin": info.get("profitMargins", 0) * 100 if info.get("profitMargins") else 0,
         "market_cap": info.get("marketCap", 0),
         "market_cap_formatted": format_market_cap(info.get("marketCap", 0))
