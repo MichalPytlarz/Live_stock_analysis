@@ -4,6 +4,17 @@ Financial analysis platform that integrates **Fundamental Analysis**, **Technica
 
 ---
 
+
+## 🖼️ Preview
+
+### Dashboard Overview
+![Main Dashboard](screenshots/main_dashboard.png)
+*The main terminal view showing real-time price action, sentiment trends, and the floating AI clock.*
+
+### AI Predictions & Fundamentals
+![AI Prediction](screenshots/prediction_and_sentimental_analysis.png)
+*Hybrid XGBoost prediction engine with detailed fundamental tooltips.*
+
 ## 🚀 Core 
 
 This project moves beyond simple price-action forecasting by merging three distinct pillars of quantitative trading:
@@ -42,6 +53,8 @@ The dashboard features a real-time fundamental summary. Each metric (P/E, P/B, D
 
 ### 4. Real-Time Dynamic UI
 Includes a floating, real-time digital clock and dynamic data refreshing to ensure the AI signals are always based on the latest market conditions.
+
+### 5. Sector Heatmap
 
 ---
 
