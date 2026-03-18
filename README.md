@@ -51,6 +51,9 @@ Predicts price movement for the next **3 hours** by correlating:
 ### Sector Heatmap
 ![Heatmap](screenshots/heatmap.png)
 
+### Kalman Filter
+![Kalman](screenshots/kalman.png)
+
 --- 
 
 ## 🏗 Project Structure
