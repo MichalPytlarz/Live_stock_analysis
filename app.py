@@ -13,6 +13,8 @@ from services.get_fundamental_data import get_fundamental_data
 from datetime import datetime, timedelta
 import plotly.graph_objects as go
 import pandas as pd
+from DSP.kalman_utils import get_kalman_dashboard_data
+import plotly.graph_objects as go
 # Streamlit configuration
 st.set_page_config(page_title="Stock Analysis Dashboard", layout="wide")
 
@@ -274,6 +276,27 @@ def render_dashboard(ticker: str):
             st.caption(f"• {headline}")
     else:
         st.info("Brak dostępnych wiadomości")
+
+
+
+    # --- Kalman Filter Visualization ---
+    st.markdown("---")
+    st.subheader(f"Kalman Filter Signal Analysis: {ticker}")
+
+    kalman_df = get_kalman_dashboard_data(load_data_cached(ticker, period="1mo", interval="1h"))
+    if kalman_df is None:
+        st.info("Brak danych do analizy Kalman.")
+    else:
+        fig_price = go.Figure()
+        fig_price.add_trace(go.Scatter(x=kalman_df.index, y=kalman_df['close'], name="Market Price", line=dict(color='gray', width=1, dash='dot')))
+        fig_price.add_trace(go.Scatter(x=kalman_df.index, y=kalman_df['Kalman_Price'], name="Kalman Signal", line=dict(color='#00ff00', width=2)))
+        fig_price.update_layout(template="plotly_dark", height=400, margin=dict(l=20, r=20, t=40, b=20))
+        st.plotly_chart(fig_price, use_container_width=True)
+        st.write("📈 **Kalman Velocity (Hidden Momentum)**")
+        fig_vel = go.Figure()
+        fig_vel.add_trace(go.Bar(x=kalman_df.index, y=kalman_df['Kalman_Velocity'], name="Velocity", marker_color='cyan'))
+        fig_vel.update_layout(template="plotly_dark", height=200, margin=dict(l=20, r=20, t=20, b=20))
+        st.plotly_chart(fig_vel, use_container_width=True)
 
     
     

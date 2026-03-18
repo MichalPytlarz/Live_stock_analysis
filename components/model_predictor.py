@@ -19,7 +19,7 @@ class ModelPredictor:
         self.features = [
             'rsi', 'ema_20', 'close', 'oil_chg', 'usd_chg',
             'sentiment_score', 'news_volume',
-            'pe_ratio', 'pb_ratio', 'profit_margin'    
+            'pe_ratio', 'pb_ratio', 'profit_margin', 'kalman_price'
         ]
         self.load_model()
     

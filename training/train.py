@@ -80,7 +80,16 @@ def prepare_data(ticker: str, period: str = "2y", interval: str = "1h", include_
     
     # 6. Target: Will price be higher in 3 hours?
     df['target'] = (df['close'].shift(-3) > df['close']).astype(int)
-    
+
+    # 7. Kalman filter feature
+    try:
+        from DSP.kalman_utils import apply_kalman_filter_filterpy
+        kalman_means, _ = apply_kalman_filter_filterpy(df['close'].values)
+        df['kalman_price'] = kalman_means
+    except Exception as e:
+        print(f"Błąd przy obliczaniu Kalman_Price: {e}")
+        df['kalman_price'] = df['close']  # fallback: use close if error
+
     return df.dropna()
 
 def train_model(ticker: str, model_path: str, company_name: str, include_oil: bool = True):
@@ -95,7 +104,8 @@ def train_model(ticker: str, model_path: str, company_name: str, include_oil: bo
         features = [
             'rsi', 'ema_20', 'close', 'oil_chg', 'usd_chg', 
             'sentiment_score', 'news_volume', 
-            'pe_ratio', 'pb_ratio', 'profit_margin'
+            'pe_ratio', 'pb_ratio', 'profit_margin',
+            'kalman_price'
         ]
         
         X = df[features]

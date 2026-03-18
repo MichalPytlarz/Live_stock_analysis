@@ -52,4 +52,5 @@ def get_fundamental_data(ticker):
         "market_cap": info.get("marketCap", 0),
         "market_cap_formatted": format_market_cap(info.get("marketCap", 0))
     }
+    print(fundamentals)
     return fundamentals

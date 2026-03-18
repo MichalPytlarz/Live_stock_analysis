@@ -3,6 +3,8 @@ import yfinance as yf
 from stockstats import StockDataFrame
 import streamlit as st
 from database.database_manager import get_sentiment_trend
+from DSP.kalman_utils import apply_kalman_filter_filterpy
+
 
 
 def get_sentiment_for_model(ticker: str) -> pd.DataFrame:
@@ -153,7 +155,15 @@ def engineer_features(df: pd.DataFrame, ticker: str, include_oil: bool = True) -
     df['pe_ratio'] = fundamentals['pe_ratio']
     df['pb_ratio'] = fundamentals['pb_ratio']
     df['profit_margin'] = fundamentals['profit_margin']
-    
+
+    # NEW: Add Kalman filter feature
+    try:
+        kalman_means, _ = apply_kalman_filter_filterpy(df['close'].values)
+        df['kalman_price'] = kalman_means
+    except Exception as e:
+        print(f"Błąd przy obliczaniu Kalman_Price: {e}")
+        df['kalman_price'] = df['close']  # fallback: use close if error
+
     return df.dropna()
 
 
