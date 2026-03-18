@@ -37,6 +37,10 @@ Predicts price movement for the next **3 hours** by correlating:
 * **Sentiment**: Aggregated score from 50+ news portals.
 * **Fundamentals**: Real-time P/E, P/B, and Margin data with interactive tooltips.
 
+### 4. (DSP) Applying Kalman Filter
+This engine:
+* Separates the "True Trend" from high-frequency volatility.
+* **Hidden Momentum Extraction**: Computes **Kalman Velocity** — a latent state variable that identifies trend acceleration/exhaustion before it's visible on standard RSI/MACD charts.
 ---
 
 ## 🖼️ Preview
